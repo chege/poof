@@ -6,6 +6,17 @@ tasks:
     cmds:
       - go build -v -o dbmask ./cmd/dbmask
 
+  clean:
+    desc: Remove the dbmask binary and test artifacts
+    cmds:
+      - rm -f dbmask
+
+  rebuild:
+    desc: Clean and rebuild the binary
+    cmds:
+      - task: clean
+      - task: build
+
   test:
     desc: Run all tests
     cmds:
@@ -34,10 +45,23 @@ tasks:
       - task: vet
       - task: test
 
-  check:
-    desc: Alias for ready
+  doctor:
+    desc: Run environment readiness check
     cmds:
-      - task: ready
+      - ./dbmask doctor --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "dbmask.hcl"}}"
+    vars:
+      DB_URL: '{{.DB_URL | default "postgres://user:pass@localhost:5432/testdb"}}'
+
+  validate:
+    desc: Validate the configuration file
+    cmds:
+      - ./dbmask validate --config "{{.CONFIG_PATH | default "dbmask.hcl"}}"
+
+  verify:
+    desc: Verify environment and configuration (doctor + validate)
+    cmds:
+      - task: doctor
+      - task: validate
 
   init:
     desc: Initialize the project
@@ -57,3 +81,9 @@ tasks:
       - ./dbmask apply --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "dbmask.hcl"}}" --yes
     vars:
       DB_URL: '{{.DB_URL | default "postgres://user:pass@localhost:5432/testdb"}}'
+
+  all:
+    desc: Run full quality gate and build
+    cmds:
+      - task: ready
+      - task: build
