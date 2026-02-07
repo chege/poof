@@ -54,7 +54,7 @@ Dependencies are managed via `go.mod`. Key dependencies include `github.com/spf1
 - **Post-Implementation**: Upon completion of the Speckit workflow (Specify -> Plan -> Tasks -> Analyze -> Implement) and successful verification, the agent should:
     1.  Stage all relevant changes (excluding binaries and secrets).
     2.  Commit the changes to the feature branch using conventional commit format.
-    3.  Checkout the `main` branch and fast-forward merge the feature branch.
+    3.  Checkout the `main` branch and merge the feature branch using `git merge --ff-only`. **Fast-forward merges are MANDATORY.**
 
 ### Contribution Guidelines
 - All new features should start with a specification in the `specs/` directory following the Speckit workflow.
