@@ -8,7 +8,15 @@ type Config struct {
 type Table struct {
 	Name    string   `hcl:"name,label"`
 	PK      string   `hcl:"pk"`
+	Source  *Source  `hcl:"source,block"`
 	Columns []Column `hcl:"column,block"`
+}
+
+type Source struct {
+	Type   string            `hcl:"type,label"`
+	Name   string            `hcl:"name,optional"`
+	SQL    string            `hcl:"sql,optional"`
+	Params map[string]string `hcl:"params,optional"`
 }
 
 type Column struct {

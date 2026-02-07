@@ -33,20 +33,51 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, fmt.Errorf("failed to decode config: %s", decodeDiags.Error())
 	}
 
-	// Strict validation for the root body
-	_, remainingBody, diags := file.Body.PartialContent(configSchema)
-	if diags.HasErrors() {
-		return nil, fmt.Errorf("root validation error: %s", diags.Error())
+	// Strict validation
+	if err := validateBody(file.Body, configSchema); err != nil {
+		return nil, err
 	}
-	if err := checkUnknown(remainingBody); err != nil {
-		return nil, fmt.Errorf("root config error: %w", err)
+
+	syntaxBody := file.Body.(*hclsyntax.Body)
+	for _, block := range syntaxBody.Blocks {
+		if block.Type != "table" {
+			continue
+		}
+		if err := validateBody(block.Body, tableSchema); err != nil {
+			return nil, fmt.Errorf("table %q: %w", block.Labels[0], err)
+		}
+
+		for _, subBlock := range block.Body.Blocks {
+			if subBlock.Type == "column" {
+				if err := validateBody(subBlock.Body, columnSchema); err != nil {
+					return nil, fmt.Errorf("table %q column %q: %w", block.Labels[0], subBlock.Labels[0], err)
+				}
+				for _, gen := range subBlock.Body.Blocks {
+					if gen.Type == "gen" {
+						if err := validateBody(gen.Body, genSchema); err != nil {
+							return nil, fmt.Errorf("table %q column %q gen %q: %w", block.Labels[0], subBlock.Labels[0], gen.Labels[0], err)
+						}
+					}
+				}
+			} else if subBlock.Type == "source" {
+				if err := validateBody(subBlock.Body, sourceSchema); err != nil {
+					return nil, fmt.Errorf("table %q source %q: %w", block.Labels[0], subBlock.Labels[0], err)
+				}
+			}
+		}
 	}
 
 	return &cfg, nil
 }
 
-func checkUnknown(body hcl.Body) error {
-	content, _, _ := body.PartialContent(&hcl.BodySchema{})
+func validateBody(body hcl.Body, schema *hcl.BodySchema) error {
+	content, remainingBody, diags := body.PartialContent(schema)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// Check for unknown items in the remaining body
+	content, _, _ = remainingBody.PartialContent(&hcl.BodySchema{})
 	for _, attr := range content.Attributes {
 		return fmt.Errorf("unknown attribute %q at %s", attr.Name, attr.NameRange.String())
 	}
@@ -61,10 +92,40 @@ var configSchema = &hcl.BodySchema{
 		{Name: "allowlist", Required: false},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
-		{
-			Type:       "table",
-			LabelNames: []string{"name"},
-		},
+		{Type: "table", LabelNames: []string{"name"}},
+	},
+}
+
+var tableSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: "pk", Required: true},
+	},
+	Blocks: []hcl.BlockHeaderSchema{
+		{Type: "column", LabelNames: []string{"name"}},
+		{Type: "source", LabelNames: []string{"type"}},
+	},
+}
+
+var columnSchema = &hcl.BodySchema{
+	Blocks: []hcl.BlockHeaderSchema{
+		{Type: "gen", LabelNames: []string{"type"}},
+	},
+}
+
+var genSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: "provider", Required: false},
+		{Name: "value", Required: false},
+		{Name: "template", Required: false},
+		{Name: "params", Required: false},
+	},
+}
+
+var sourceSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: "name", Required: false},
+		{Name: "sql", Required: false},
+		{Name: "params", Required: false},
 	},
 }
 

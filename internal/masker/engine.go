@@ -9,6 +9,7 @@ import (
 	"github.com/christopher/masker/internal/config"
 	"github.com/christopher/masker/internal/db"
 	"github.com/christopher/masker/internal/generator"
+	"github.com/christopher/masker/internal/producer"
 )
 
 type Engine struct {
@@ -55,9 +56,15 @@ type rowData struct {
 }
 
 func (e *Engine) Apply(ctx context.Context) (*MaskingReport, error) {
+	producer.RegisterAll()
 	report := &MaskingReport{}
 	for _, tableCfg := range e.Config.Tables {
-		count, err := e.DB.EstimateRowCount(ctx, tableCfg.Name)
+		p, err := producer.NewProducer(ctx, e.DB, tableCfg.Name, tableCfg.PK, tableCfg.Source)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create producer for %s: %w", tableCfg.Name, err)
+		}
+
+		count, err := p.EstimateCount(ctx)
 		if err != nil {
 			count = 0 // Ignore estimate errors
 		}
@@ -73,7 +80,7 @@ func (e *Engine) Apply(ctx context.Context) (*MaskingReport, error) {
 			Columns:   cols,
 		})
 
-		diffs, err := e.maskTable(ctx, tableCfg)
+		diffs, err := e.maskTable(ctx, tableCfg, p)
 		if err != nil {
 			return nil, fmt.Errorf("failed to mask table %s: %w", tableCfg.Name, err)
 		}
@@ -82,7 +89,7 @@ func (e *Engine) Apply(ctx context.Context) (*MaskingReport, error) {
 	return report, nil
 }
 
-func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table) ([]Diff, error) {
+func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p producer.Producer) ([]Diff, error) {
 	if !e.DryRun {
 		log.Printf("Masking table %s with %d workers...", tableCfg.Name, e.Workers)
 	}
@@ -105,7 +112,7 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table) ([]Diff, 
 		limit = 5
 	}
 
-	rows, err := e.DB.FetchRows(ctx, tableCfg.Name, tableCfg.PK, columnNames, limit)
+	rows, err := p.FetchRows(ctx, columnNames, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch rows: %w", err)
 	}

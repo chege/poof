@@ -73,6 +73,14 @@ func (c *Client) Begin(ctx context.Context) (db.Tx, error) {
 	return &txWrapper{tx}, nil
 }
 
+func (c *Client) Query(ctx context.Context, sql string, args ...any) (db.Rows, error) {
+	rows, err := c.pool.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return &rowsWrapper{rows}, nil
+}
+
 type rowsWrapper struct {
 	pgx.Rows
 }

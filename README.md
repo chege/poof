@@ -66,6 +66,39 @@ Run the masking tool:
 - `null`: Sets the column to NULL.
 - `template`: Uses Go templates to generate values.
 
+## Data Producers
+
+You can control how rows are selected for masking using the `source` block:
+
+### Table (Default)
+```hcl
+table "users" {
+  pk = "id"
+  # Omitted source defaults to table scan
+}
+```
+
+### View
+```hcl
+table "users" {
+  pk = "id"
+  source "view" {
+    name = "active_users_view"
+  }
+}
+```
+
+### Custom Query
+```hcl
+table "users" {
+  pk = "id"
+  source "query" {
+    sql = "SELECT id FROM users WHERE active = true ORDER BY id"
+  }
+}
+```
+*Note: Custom queries MUST include `ORDER BY pk` to ensure determinism.*
+
 ## Testing
 
 ```bash

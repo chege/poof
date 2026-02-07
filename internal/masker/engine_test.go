@@ -150,6 +150,61 @@ func TestE2E_DryRun(t *testing.T) {
 	assert.Equal(t, "Real Name", name, "Database should be unchanged in dry-run")
 }
 
+func TestE2E_QueryProducer(t *testing.T) {
+	ctx := context.Background()
+
+	pgContainer, _ := postgres.Run(ctx, "postgres:16-alpine",
+		postgres.WithDatabase("testdb"),
+		postgres.WithUsername("user"),
+		postgres.WithPassword("pass"),
+		testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2)),
+	)
+	defer pgContainer.Terminate(ctx)
+	connStr, _ := pgContainer.ConnectionString(ctx, "sslmode=disable")
+	client, _ := db.Connect(ctx, connStr)
+	defer client.Close()
+
+	tx, _ := client.Begin(ctx)
+	tx.Exec(ctx, `
+		CREATE TABLE users (id INT PRIMARY KEY, name TEXT, active BOOLEAN);
+		INSERT INTO users (id, name, active) VALUES (1, 'Real 1', true), (2, 'Real 2', false);
+	`)
+	tx.Commit(ctx)
+
+	generator.RegisterAll()
+	cfg := &config.Config{
+		Tables: []config.Table{{
+			Name: "users", PK: "id",
+			Source: &config.Source{
+				Type: "query",
+				SQL:  "SELECT id FROM users WHERE active = true ORDER BY id",
+			},
+			Columns: []config.Column{{Name: "name", Gen: config.Gen{Type: "constant", Value: "Masked"}}},
+		}},
+	}
+
+	engine := NewEngine(client, cfg, 1)
+	_, err := engine.Apply(ctx)
+	assert.NoError(t, err)
+
+	// Verify only active user is masked
+	var name1, name2 string
+
+	rows1, err := client.Query(ctx, "SELECT name FROM users WHERE id = 1")
+	assert.NoError(t, err)
+	rows1.Next()
+	rows1.Scan(&name1)
+	rows1.Close()
+
+	rows2, err := client.Query(ctx, "SELECT name FROM users WHERE id = 2")
+	assert.NoError(t, err)
+	rows2.Next()
+	rows2.Scan(&name2)
+	rows2.Close()
+	assert.Equal(t, "Masked", name1)
+	assert.Equal(t, "Real 2", name2)
+}
+
 func TestDeterminism(t *testing.T) {
 	ctx := context.Background()
 
