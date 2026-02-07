@@ -82,6 +82,19 @@ The project follows a standard Go project layout:
     2.  Commit to the feature branch with conventional message.
     3.  Checkout `main` and merge using `git merge --ff-only`. **Fast-forward merges are MANDATORY.**
 
+## Task-Based Development
+
+Gemini MUST prefer using `task` (Taskfile.dev) for all development and verification steps.
+
+- **`task ready`**: (Preferred) Run `tidy` -> `fmt` -> `vet` -> `test`. Use this as the standard quality gate.
+- **`task verify`**: Run `doctor` and `validate`. Use this to check environment and config health.
+- **`task all`**: Run the full `ready` suite and then `build`.
+- **`task rebuild`**: Clean and rebuild the binary.
+- **`task plan`**: Show masking changes without applying (supports `DB_URL` and `CONFIG_PATH` vars).
+- **`task apply`**: Apply masking rules automatically (supports `DB_URL` and `CONFIG_PATH` vars).
+
+Example: `task plan DB_URL="postgres://..." CONFIG_PATH="custom.hcl"`
+
 ## Contribution Guidelines
 
 - All new features start with a specification in `specs/`.
