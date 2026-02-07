@@ -8,13 +8,17 @@
 - **Deterministic**: Masking is based on a seed derived from the table name and primary key, ensuring consistent results across runs.
 - **Parallel-Safe**: Uses a worker pool for efficient data generation without affecting determinism.
 - **Safe-by-Default**: Refuses to run on databases not in the allowlist unless `--force` is provided.
+- **Taskfile Integration**: Standardized development and orchestration via Taskfile.dev.
 - **Extensible**: Easily add new generators or faker providers in Go.
 
-## Installation
+## Development Workflow
 
-```bash
-go build ./cmd/dbmask
-```
+This project uses `task` (Taskfile.dev) for common operations:
+
+- **Build**: `task build`
+- **Test**: `task test`
+- **Lint/Check**: `task check` (runs fmt, vet, and test)
+- **Apply Masking**: `task apply -- DB_URL="your-db-url" CONFIG_PATH="your-config.hcl"`
 
 ## Usage
 
@@ -32,9 +36,9 @@ table "users" {
     }
   }
 
-  column "email" {
+  column "username" {
     gen "faker" {
-      provider = "email"
+      provider = "username"
     }
   }
 }
@@ -46,9 +50,18 @@ Run the masking tool:
 ./dbmask apply --db "postgres://user:pass@localhost:5432/testdb" --config dbmask.hcl
 ```
 
-## Generators
+## Supported Generators
 
-- `faker`: Uses a provider to generate fake data (e.g., `first_name`, `email`, `full_name`, `company`).
+- `faker`: Uses a provider to generate fake data. Supported providers:
+    - `first_name`
+    - `last_name`
+    - `full_name`
+    - `username`
+    - `email`
+    - `company_name`
+    - `phone_number`
+    - `ipv4_address`
+    - `short_text`
 - `constant`: Returns a fixed value.
 - `null`: Sets the column to NULL.
 - `template`: Uses Go templates to generate values.
@@ -56,5 +69,5 @@ Run the masking tool:
 ## Testing
 
 ```bash
-go test ./...
+task test
 ```

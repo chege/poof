@@ -1,10 +1,10 @@
 package generator
 
 type RowContext struct {
-	TableName        string
-	ColumnName       string
-	PrimaryKeyValue  any
-	Seed             [16]byte // MD5 hash
+	TableName       string
+	ColumnName      string
+	PrimaryKeyValue any
+	Seed            [16]byte // MD5 hash
 }
 
 type Generator interface {

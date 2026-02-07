@@ -6,13 +6,30 @@ import (
 
 func RegisterTestFakers() {
 	RegisterFakerProvider("test_name", func(r *rand.Rand) any {
-		// We use a fixed sequence or something predictable.
-		// Since we seed the rand with the row seed, we can just use Intn.
-		// But for "test fakers", we might want something even more obvious.
 		return "Test User"
 	})
 
 	RegisterFakerProvider("test_email", func(r *rand.Rand) any {
 		return "test@example.com"
+	})
+
+	RegisterFakerProvider("test_username", func(r *rand.Rand) any {
+		return "test_user_1"
+	})
+
+	RegisterFakerProvider("test_company", func(r *rand.Rand) any {
+		return "Test Corp"
+	})
+
+	RegisterFakerProvider("test_phone", func(r *rand.Rand) any {
+		return "+1-555-0000"
+	})
+
+	RegisterFakerProvider("test_ipv4", func(r *rand.Rand) any {
+		return "127.0.0.1"
+	})
+
+	RegisterFakerProvider("test_short_text", func(r *rand.Rand) any {
+		return "test_text"
 	})
 }

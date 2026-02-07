@@ -20,6 +20,13 @@ func RegisterFakerProvider(name string, provider FakerProvider) {
 	fakerProviders[name] = provider
 }
 
+func GetFakerProvider(name string) (FakerProvider, bool) {
+	fakerMu.RLock()
+	defer fakerMu.RUnlock()
+	p, ok := fakerProviders[name]
+	return p, ok
+}
+
 type fakerGenerator struct {
 	providerName string
 }

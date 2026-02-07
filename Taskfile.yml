@@ -1,0 +1,46 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Build the dbmask binary
+    cmds:
+      - go build -v -o dbmask ./cmd/dbmask
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test -v ./...
+
+  fmt:
+    desc: Format Go code
+    cmds:
+      - gofmt -w .
+
+  vet:
+    desc: Run go vet
+    cmds:
+      - go vet ./...
+
+  check:
+    desc: Run formatting, vet, and tests
+    cmds:
+      - task: fmt
+      - task: vet
+      - task: test
+
+  init:
+    desc: Initialize the project (placeholder for now)
+    cmds:
+      - echo "Project initialized"
+
+  plan:
+    desc: Show masking plan (placeholder for future implementation)
+    cmds:
+      - echo "Planning not yet implemented as a separate command"
+
+  apply:
+    desc: Apply masking rules
+    cmds:
+      - ./dbmask apply --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "dbmask.hcl"}}"
+    vars:
+      DB_URL: '{{.DB_URL | default "postgres://user:pass@localhost:5432/testdb"}}'
