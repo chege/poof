@@ -39,15 +39,21 @@ tasks:
     cmds:
       - go mod tidy
 
+  fmt:
+    desc: Format code and sort imports
+    cmds:
+      - task: tidy
+      - golangci-lint run --fix ./...
+
   lint:
     desc: Run golangci-lint
     cmds:
       - golangci-lint run ./...
 
   ready:
-    desc: Prepare code (tidy, lint) and run tests
+    desc: Prepare code (fmt, lint) and run tests
     cmds:
-      - task: tidy
+      - task: fmt
       - task: lint
       - task: test
 
