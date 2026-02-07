@@ -1,3 +1,4 @@
+// Package generator provides the masking data generation logic.
 package generator
 
 import (
@@ -10,6 +11,7 @@ import (
 
 var registerOnce sync.Once
 
+// RegisterAll ensures all built-in generators and faker providers are registered exactly once.
 func RegisterAll() {
 	registerOnce.Do(func() {
 		RegisterGenerator("faker", func(gen config.Gen) (Generator, error) {
@@ -23,7 +25,7 @@ func RegisterAll() {
 			return NewConstantGenerator(gen.Value), nil
 		})
 
-		RegisterGenerator("null", func(gen config.Gen) (Generator, error) {
+		RegisterGenerator("null", func(_ config.Gen) (Generator, error) {
 			return NewNullGenerator(), nil
 		})
 

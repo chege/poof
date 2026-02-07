@@ -1,3 +1,4 @@
+// Package masker coordinates the data masking process.
 package masker
 
 import (
@@ -5,11 +6,12 @@ import (
 
 	"github.com/christopher/masker/internal/config"
 	"github.com/christopher/masker/internal/db"
-	_ "github.com/christopher/masker/internal/db/postgres"
+	_ "github.com/christopher/masker/internal/db/postgres" // Registered for side-effect database discovery.
 	"github.com/christopher/masker/internal/generator"
 	"github.com/christopher/masker/internal/ui"
 )
 
+// CheckReadiness performs a series of environment and configuration checks.
 func CheckReadiness(ctx context.Context, configPath string, dsn string) bool {
 	success := true
 

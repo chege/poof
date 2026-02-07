@@ -27,28 +27,16 @@ tasks:
     cmds:
       - go mod tidy
 
-  fmt:
-    desc: Format Go code (fixes in-place)
+  lint:
+    desc: Run golangci-lint
     cmds:
-      - gofmt -w .
-
-  vet:
-    desc: Run go vet
-    cmds:
-      - go vet ./...
-
-  staticcheck:
-    desc: Run staticcheck
-    cmds:
-      - staticcheck ./...
+      - golangci-lint run ./...
 
   ready:
-    desc: Prepare code (tidy, fmt, vet, staticcheck) and run tests
+    desc: Prepare code (tidy, lint) and run tests
     cmds:
       - task: tidy
-      - task: fmt
-      - task: vet
-      - task: staticcheck
+      - task: lint
       - task: test
 
   doctor:

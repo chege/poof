@@ -1,3 +1,4 @@
+// Package main provides the CLI entry point for dbmask.
 package main
 
 import (
@@ -18,7 +19,7 @@ var rootCmd = &cobra.Command{
 	Use:   "dbmask",
 	Short: "dbmask is a PostgreSQL data masking tool",
 	Long:  "A declarative, deterministic, and parallel-safe data masking tool for PostgreSQL.",
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+	PersistentPreRun: func(_ *cobra.Command, _ []string) {
 		ui.Init(noColor)
 		// Initialize structured logging
 		handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
@@ -28,6 +29,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+// Execute starts the CLI application.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

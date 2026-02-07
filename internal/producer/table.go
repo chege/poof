@@ -12,7 +12,8 @@ type tableProducer struct {
 	pk       string
 }
 
-func NewTableProducer(ctx context.Context, database db.DB, table string, pk string, cfg *config.Source) (Producer, error) {
+// NewTableProducer creates a new Producer that performs a standard table scan.
+func NewTableProducer(_ context.Context, database db.DB, table string, pk string, _ *config.Source) (Producer, error) {
 	return &tableProducer{database: database, table: table, pk: pk}, nil
 }
 

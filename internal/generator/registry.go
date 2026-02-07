@@ -1,3 +1,4 @@
+// Package generator provides the masking data generation logic.
 package generator
 
 import (
@@ -7,14 +8,16 @@ import (
 	"github.com/christopher/masker/internal/config"
 )
 
-type GeneratorFactory func(gen config.Gen) (Generator, error)
+// Factory is a function that creates a new Generator based on its configuration.
+type Factory func(gen config.Gen) (Generator, error)
 
 var (
 	registryMu sync.RWMutex
-	factories  = make(map[string]GeneratorFactory)
+	factories  = make(map[string]Factory)
 )
 
-func RegisterGenerator(name string, factory GeneratorFactory) {
+// RegisterGenerator adds a new generator factory to the global registry.
+func RegisterGenerator(name string, factory Factory) {
 	registryMu.Lock()
 	defer registryMu.Unlock()
 	if _, dup := factories[name]; dup {
@@ -23,6 +26,7 @@ func RegisterGenerator(name string, factory GeneratorFactory) {
 	factories[name] = factory
 }
 
+// NewGenerator instantiates a generator based on the column configuration.
 func NewGenerator(gen config.Gen) (Generator, error) {
 	registryMu.RLock()
 	factory, ok := factories[gen.Type]

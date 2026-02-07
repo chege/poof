@@ -1,3 +1,4 @@
+// Package main provides the CLI entry point for dbmask.
 package main
 
 import (
@@ -14,7 +15,7 @@ import (
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Check if the environment is ready for masking",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		ctx := context.Background()
 
 		// Load config first to get DSN if not provided via flag

@@ -1,3 +1,4 @@
+// Package main provides the CLI entry point for dbmask.
 package main
 
 import (
@@ -7,7 +8,7 @@ import (
 
 	"github.com/christopher/masker/internal/config"
 	"github.com/christopher/masker/internal/db"
-	_ "github.com/christopher/masker/internal/db/postgres"
+	_ "github.com/christopher/masker/internal/db/postgres" // Register Postgres backend
 	"github.com/christopher/masker/internal/generator"
 	"github.com/christopher/masker/internal/masker"
 	"github.com/christopher/masker/internal/ui"
@@ -23,7 +24,7 @@ var (
 var applyCmd = &cobra.Command{
 	Use:   "apply",
 	Short: "Apply data masking rules to the database",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		generator.RegisterAll()
 
 		cfg, err := config.LoadConfig(configPath)
@@ -32,18 +33,17 @@ var applyCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		dsn := dbConnStr
-		if dsn == "" {
-			dsn = cfg.Database.DSN
+		ctx := context.Background()
+		if dbConnStr == "" {
+			dbConnStr = cfg.Database.DSN
 		}
 
-		if dsn == "" {
+		if dbConnStr == "" {
 			ui.Error("Database connection string is required (either in config or via --db)")
 			os.Exit(1)
 		}
 
-		ctx := context.Background()
-		client, err := db.Connect(ctx, dsn)
+		client, err := db.Connect(ctx, dbConnStr)
 		if err != nil {
 			ui.Error("DB connection error: %v", err)
 			os.Exit(1)
@@ -63,9 +63,9 @@ var applyCmd = &cobra.Command{
 
 		if !yes && !dryRun {
 			ui.Info("Running plan before apply...")
-			engine := masker.NewEngine(client, cfg, workers)
-			engine.DryRun = true
-			_, err := engine.Apply(ctx)
+			preEngine := masker.NewEngine(client, cfg, workers)
+			preEngine.DryRun = true
+			_, err = preEngine.Apply(ctx)
 			if err != nil {
 				ui.Error("Pre-apply plan failed: %v", err)
 				os.Exit(1)

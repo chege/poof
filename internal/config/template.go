@@ -1,5 +1,6 @@
 package config
 
+// DefaultTemplate returns a standard TOML configuration string with optional detailed explanations.
 func DefaultTemplate(explain bool) string {
 	content := `[database]
 dsn = "postgres://user:pass@localhost:5432/testdb"

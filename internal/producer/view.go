@@ -13,7 +13,8 @@ type viewProducer struct {
 	pk       string
 }
 
-func NewViewProducer(ctx context.Context, database db.DB, table string, pk string, cfg *config.Source) (Producer, error) {
+// NewViewProducer creates a new Producer that selects rows from a database view.
+func NewViewProducer(_ context.Context, database db.DB, _ string, pk string, cfg *config.Source) (Producer, error) {
 	if cfg == nil || cfg.Name == "" {
 		return nil, fmt.Errorf("view producer requires a 'name'")
 	}

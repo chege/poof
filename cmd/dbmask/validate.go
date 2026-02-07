@@ -1,3 +1,4 @@
+// Package main provides the CLI entry point for dbmask.
 package main
 
 import (
@@ -11,7 +12,7 @@ import (
 var validateCmd = &cobra.Command{
 	Use:   "validate",
 	Short: "Validate the TOML configuration file",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		_, err := config.LoadConfig(configPath)
 		if err != nil {
 			ui.Error("Validation failed: %v", err)

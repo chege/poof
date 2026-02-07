@@ -1,3 +1,4 @@
+// Package postgres provides the PostgreSQL backend implementation for dbmask.
 package postgres
 
 import (
@@ -10,10 +11,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// Client implements the db.DB interface for PostgreSQL.
 type Client struct {
 	pool *pgxpool.Pool
 }
 
+// NewClient creates a new PostgreSQL client from the given connection string.
 func NewClient(ctx context.Context, connStr string) (*Client, error) {
 	pool, err := pgxpool.New(ctx, connStr)
 	if err != nil {
@@ -22,10 +25,12 @@ func NewClient(ctx context.Context, connStr string) (*Client, error) {
 	return &Client{pool: pool}, nil
 }
 
+// Close closes the underlying connection pool.
 func (c *Client) Close() {
 	c.pool.Close()
 }
 
+// GetDatabaseName returns the name of the currently connected database.
 func (c *Client) GetDatabaseName(ctx context.Context) (string, error) {
 	var dbName string
 	err := c.pool.QueryRow(ctx, "SELECT current_database()").Scan(&dbName)
@@ -35,6 +40,7 @@ func (c *Client) GetDatabaseName(ctx context.Context) (string, error) {
 	return dbName, nil
 }
 
+// EstimateRowCount returns an estimated row count for the given table using pg_class metadata.
 func (c *Client) EstimateRowCount(ctx context.Context, tableName string) (int64, error) {
 	var count int64
 	// Fast estimate for Postgres
@@ -49,6 +55,7 @@ func (c *Client) EstimateRowCount(ctx context.Context, tableName string) (int64,
 	return count, nil
 }
 
+// FetchRows returns a cursor for iterating over rows in the given table, ordered by the primary key.
 func (c *Client) FetchRows(ctx context.Context, tableName string, pkColumn string, columns []string, limit int) (db.Rows, error) {
 	cols := []string{pkColumn}
 	cols = append(cols, columns...)
@@ -65,6 +72,7 @@ func (c *Client) FetchRows(ctx context.Context, tableName string, pkColumn strin
 	return &rowsWrapper{rows}, nil
 }
 
+// Begin starts a new transaction.
 func (c *Client) Begin(ctx context.Context) (db.Tx, error) {
 	tx, err := c.pool.Begin(ctx)
 	if err != nil {
@@ -73,6 +81,7 @@ func (c *Client) Begin(ctx context.Context) (db.Tx, error) {
 	return &txWrapper{tx}, nil
 }
 
+// Query executes a raw SQL query and returns a Row iterator.
 func (c *Client) Query(ctx context.Context, sql string, args ...any) (db.Rows, error) {
 	rows, err := c.pool.Query(ctx, sql, args...)
 	if err != nil {

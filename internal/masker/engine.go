@@ -1,3 +1,4 @@
+// Package masker coordinates the data masking process.
 package masker
 
 import (
@@ -12,6 +13,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// Engine orchestrates the data masking process across multiple tables and workers.
 type Engine struct {
 	DB      db.DB
 	Config  *config.Config
@@ -19,25 +21,29 @@ type Engine struct {
 	DryRun  bool
 }
 
+// TableReport provides a summary of masking intended for a specific table.
 type TableReport struct {
 	Name      string
-	Estimates int64
 	Columns   []string
+	Estimates int64
 }
 
+// MaskingReport provides a comprehensive summary of masking operations.
 type MaskingReport struct {
 	Tables []TableReport
 	Diffs  []Diff
 }
 
+// Diff represents a single row value change.
 type Diff struct {
-	TableName  string
-	ColumnName string
 	PKValue    any
 	OldValue   any
 	NewValue   any
+	TableName  string
+	ColumnName string
 }
 
+// NewEngine creates a new masking engine with the given database client and configuration.
 func NewEngine(client db.DB, cfg *config.Config, workers int) *Engine {
 	if workers <= 0 {
 		workers = 1
@@ -55,6 +61,7 @@ type rowData struct {
 	newValues []any
 }
 
+// Apply executes the masking rules as defined in the configuration.
 func (e *Engine) Apply(ctx context.Context) (*MaskingReport, error) {
 	producer.RegisterAll()
 	report := &MaskingReport{}

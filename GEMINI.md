@@ -29,7 +29,7 @@ Gemini MUST assume the following tools are installed and available for use:
 - `git`
 - `docker`
 - `task` (Taskfile.dev)
-- `staticcheck`
+- `golangci-lint`
 - `speckit` / `specify-cli`
 - `rg` (ripgrep)
 - `jq`, `sed`, `awk`
@@ -44,36 +44,41 @@ Gemini MUST assume the following tools are installed and available for use:
 ### Main Technologies
 - **Language**: Go (1.25.7+)
 - **CLI Framework**: Cobra
-- **Configuration**: HCL (HashiCorp Configuration Language)
+- **Configuration**: TOML
 - **Database Driver**: pgx (v5)
 - **Testing**: Testcontainers-go (PostgreSQL module), Testify
 - **Task Runner**: Taskfile.dev
+- **Linter**: golangci-lint
 
 ### Architecture
 The project follows a standard Go project layout:
-- `cmd/dbmask/`: Entry points and CLI command implementations (`root.go`, `apply.go`).
+- `cmd/dbmask/`: Entry points and CLI command implementations (`root.go`, `apply.go`, etc.).
 - `internal/`: Private library code.
-    - `config/`: HCL parsing and configuration models.
-    - `db/`: PostgreSQL client wrapper and database interactions.
+    - `config/`: TOML parsing and validation (using `validator/v10`).
+    - `db/`: Database abstraction interface and PostgreSQL implementation.
     - `generator/`: Data generation logic, registry, and providers.
+    - `producer/`: Row selection logic (table, view, query).
     - `masker/`: The core orchestration engine for parallel masking.
+    - `ui/`: Terminal output and status reporting.
 
 ### Key Concepts
 - **Determinism**: Row-level seeding via `MD5(table_name + ":" + primary_key_value)`.
-- **Parallel-Safe**: Worker pool architecture with sequential database writes.
-- **Safe-by-Default**: Allowlist verification for target databases.
+- **Parallel-Safe**: Worker pool architecture using `errgroup` for safe concurrency.
+- **Safe-by-Default**: Irreversible mutations require plan/dry-run verification and allowlist checks.
 
-## Development Conventions
+## Task-Based Development
 
-### Coding Style
-- **Idiomatic Go**: Follow `gofmt` and standard naming.
-- **Internal Packages**: Core logic belongs in `internal/`.
-- **Registry Pattern**: Generators and faker providers must be explicitly registered in `internal/generator/all.go`.
+Gemini MUST prefer using `task` (Taskfile.dev) for all development and verification steps.
 
-### Testing Practices
-- **E2E Testing**: `testcontainers-go` for real PostgreSQL integration.
-- **Determinism Checks**: Verify output consistency across worker counts.
-- **Test Fakers**: Use `internal/generator/test_fakers.go` for predictable assertions.
+- **`task ready`**: (Preferred) Run `tidy` -> `lint` -> `test`. Use this as the standard quality gate.
+- **`task verify`**: Run `doctor` and `validate`. Use this to check environment and config health.
+- **`task lint`**: Run `golangci-lint` for comprehensive code analysis.
+- **`task all`**: Run the full `ready` suite and then `build`.
+- **`task rebuild`**: Clean and rebuild the binary.
+- **`task plan`**: Show masking changes without applying (supports `DB_URL` and `CONFIG_PATH` vars).
+- **`task apply`**: Apply masking rules automatically (supports `DB_URL` and `CONFIG_PATH` vars).
+
+Example: `task plan DB_URL="postgres://..." CONFIG_PATH="custom.toml"`
 
 ## Git & Workflow
 
@@ -83,23 +88,7 @@ The project follows a standard Go project layout:
     2.  Commit to the feature branch with conventional message.
     3.  Checkout `main` and merge using `git merge --ff-only`. **Fast-forward merges are MANDATORY.**
 
-## Task-Based Development
-
-Gemini MUST prefer using `task` (Taskfile.dev) for all development and verification steps.
-
-- **`task ready`**: (Preferred) Run `tidy` -> `fmt` -> `vet` -> `staticcheck` -> `test`. Use this as the standard quality gate.
-- **`task verify`**: Run `doctor` and `validate`. Use this to check environment and config health.
-- **`task all`**: Run the full `ready` suite and then `build`.
-- **`task rebuild`**: Clean and rebuild the binary.
-- **`task plan`**: Show masking changes without applying (supports `DB_URL` and `CONFIG_PATH` vars).
-- **`task apply`**: Apply masking rules automatically (supports `DB_URL` and `CONFIG_PATH` vars).
-
-Example: `task plan DB_URL="postgres://..." CONFIG_PATH="custom.hcl"`
-
 ## Contribution Guidelines
-
 - All new features start with a specification in `specs/`.
-
 - Ensure `task ready` passes before committing.
-
 - Do not commit binaries or secrets.

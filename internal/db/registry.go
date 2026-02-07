@@ -1,3 +1,4 @@
+// Package db provides database abstractions and backend-agnostic interfaces for dbmask.
 package db
 
 import (
@@ -6,14 +7,17 @@ import (
 	"strings"
 )
 
+// Factory is a function that creates a new DB instance from a connection string.
 type Factory func(ctx context.Context, connStr string) (DB, error)
 
 var factories = make(map[string]Factory)
 
+// Register adds a new database factory for the given URI scheme (e.g. "postgres").
 func Register(scheme string, factory Factory) {
 	factories[scheme] = factory
 }
 
+// Connect parses the DSN scheme and instantiates the appropriate database backend.
 func Connect(ctx context.Context, connStr string) (DB, error) {
 	parts := strings.Split(connStr, "://")
 	if len(parts) < 2 {

@@ -1,3 +1,4 @@
+// Package main provides the CLI entry point for dbmask.
 package main
 
 import (
@@ -13,7 +14,7 @@ var explain bool
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a new dbmask.toml configuration file",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		path := "dbmask.toml"
 		if _, err := os.Stat(path); err == nil {
 			ui.Error("File %s already exists. Refusing to overwrite.", path)
@@ -21,7 +22,8 @@ var initCmd = &cobra.Command{
 		}
 
 		content := config.DefaultTemplate(explain)
-		err := os.WriteFile(path, []byte(content), 0644)
+		// #nosec G306 -- configuration file is readable by the owner.
+		err := os.WriteFile(path, []byte(content), 0600)
 		if err != nil {
 			ui.Error("Failed to write %s: %v", path, err)
 			os.Exit(1)

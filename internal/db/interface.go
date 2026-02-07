@@ -1,3 +1,4 @@
+// Package db provides database abstractions and backend-agnostic interfaces for dbmask.
 package db
 
 import (

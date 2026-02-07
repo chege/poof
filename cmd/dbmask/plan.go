@@ -1,3 +1,4 @@
+// Package main provides the CLI entry point for dbmask.
 package main
 
 import (
@@ -16,7 +17,7 @@ import (
 var planCmd = &cobra.Command{
 	Use:   "plan",
 	Short: "Show a summary of masking changes",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		generator.RegisterAll()
 		cfg, err := config.LoadConfig(configPath)
 		if err != nil {

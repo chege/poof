@@ -1,9 +1,11 @@
+// Package config handles the loading, validation, and representation of the dbmask TOML configuration.
 package config
 
 import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 	"github.com/go-playground/validator/v10"
@@ -11,12 +13,15 @@ import (
 
 var validate = validator.New()
 
+// LoadConfig reads and validates a TOML configuration file from the given path.
 func LoadConfig(path string) (*Config, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open config: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 
 	var cfg Config
 	decoder := toml.NewDecoder(f)
@@ -38,6 +43,7 @@ func LoadConfig(path string) (*Config, error) {
 	return &cfg, nil
 }
 
+// Save writes the configuration to the given writer in TOML format.
 func (c *Config) Save(w io.Writer) error {
 	return toml.NewEncoder(w).Encode(c)
 }
