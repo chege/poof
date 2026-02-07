@@ -1,59 +1,80 @@
-# poof
+# ✨ poof
 
-`poof` is a PostgreSQL data masking tool designed to be deterministic, parallel-safe, and declarative.
+[![Go Version](https://img.shields.io/github/go-mod/go-version/christopher/masker?color=00ADD8&logo=go)](https://go.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Safe by Default](https://img.shields.io/badge/Safety-First-blueviolet)](https://github.com/christopher/masker)
 
-## Try poof in 2 minutes
+**Deterministic, parallel-safe, and declarative data masking for PostgreSQL.**
 
-Experience `poof` immediately without any setup.
+`poof` is a trust-first anonymization tool designed to help developers and operators mask sensitive production data for use in staging, testing, and local environments—without the risk of breaking constraints or leaking data.
 
-**Requirements:**
-- Docker
-- Go (1.25.7+)
+---
 
-**Run the demo:**
+## 🚀 Try poof in 2 Minutes
+
+Experience `poof` immediately using our self-contained demo environment.
+
+**Requirements:** [Docker](https://www.docker.com/) & [Go](https://go.dev/)
+
 ```bash
+# 1. Clone the repo
+git clone https://github.com/christopher/masker.git && cd masker
+
+# 2. Run the automated demo
 task demo
 ```
 
-**What this does:**
-1. Spins up a local PostgreSQL container.
-2. Loads sample user data.
-3. Runs `poof plan` to show you exactly how the data will be masked.
+**What happens next?**
+1. A local PostgreSQL container spins up.
+2. Sample PII (Personally Identifiable Information) is loaded.
+3. `poof` analyzes the schema and generates a **Masking Plan**.
+4. You'll see a side-by-side diff of how the data *would* be transformed.
 
-To clean up: `task demo:clean`
+---
 
-## Features
+## 💎 Key Features
 
-- **Declarative TOML Configuration**: Define masking rules in a human-readable format.
-- **Deterministic**: Masking is based on a seed derived from the table name and primary key, ensuring consistent results across runs.
-- **Parallel-Safe**: Uses a worker pool for efficient data generation without affecting determinism.
-- **Safe-by-Default**: Refuses to run on databases not in the allowlist unless `--force` is provided.
-- **Taskfile Integration**: Standardized development and orchestration via Taskfile.dev.
-- **Extensible**: Easily add new generators or faker providers in Go.
+*   **🔒 Safe-by-Default**: Refuses to touch any database not explicitly named in your `allowed_db_names` allowlist.
+*   **🧠 Deterministic**: Masking values are seeded by `MD5(table_name + primary_key)`, ensuring consistent results across multiple runs and environments.
+*   **⚡ Parallel-Safe**: High-performance worker pool architecture scales to millions of rows while maintaining deterministic integrity.
+*   **🛠 Declarative**: Define your rules in human-readable TOML. No complex SQL scripts or brittle ETL pipelines.
+*   **♻️ Smart Retries**: Automatically detects `UNIQUE` constraint violations and retries generation with a deterministic incrementer until successful.
+*   **🛡 No-Schema-Mod**: `poof` never runs `ALTER`, `DROP`, or `DISABLE CONSTRAINTS`. It works within your existing schema rules.
 
-## Development Workflow
+---
 
-This project uses `task` (Taskfile.dev) for common operations:
+## 🕹 Commands
 
-- **Build**: `task build`
-- **Test**: `task test`
-- **Lint/Check**: `task check` (runs fmt, vet, and test)
-- **Apply Masking**: `task apply -- DB_URL="your-db-url" CONFIG_PATH="your-config.hcl"`
+| Command | Purpose |
+| :--- | :--- |
+| `poof init` | Scaffold a new `poof.toml` configuration file. |
+| `poof analyze` | **Advisory Mode.** Inspects your DB and suggests columns that need masking. |
+| `poof plan` | Dry-run preview. Shows exactly what will happen without changing a single byte. |
+| `poof apply` | Executes the masking. Supports `--dry-run` for a full simulation. |
+| `poof doctor` | Checks your environment, DB connections, and config health. |
 
-## Usage
+---
 
-Create a `poof.toml` file:
+## 📝 Configuration
+
+Define your masking rules in `poof.toml`:
 
 ```toml
 [database]
-dsn = "postgres://user:pass@localhost:5432/testdb"
+dsn = "postgres://user:pass@localhost:5432/my_app"
 
 [safety]
-allowed_db_names = ["testdb"]
+allowed_db_names = ["staging_db", "dev_db"]
 
 [[tables]]
 name = "users"
 pk = "id"
+
+  [[tables.columns]]
+  name = "email"
+  [tables.columns.gen]
+  type = "faker"
+  provider = "email"
 
   [[tables.columns]]
   name = "full_name"
@@ -62,69 +83,41 @@ pk = "id"
   provider = "full_name"
 
   [[tables.columns]]
-  name = "username"
+  name = "secret_key"
   [tables.columns.gen]
-  type = "faker"
-  provider = "username"
+  type = "hash"
 ```
 
-Run the masking tool:
+---
 
-```bash
-./poof apply --config poof.toml
-```
+## 🧩 Built-in Generators
 
-## Supported Generators
+`poof` comes packed with specialized generators:
 
-- `faker`: Uses a provider to generate fake data. Supported providers:
-    - `first_name`
-    - `last_name`
-    - `full_name`
-    - `username`
-    - `email`
-    - `company_name`
-    - `phone_number`
-    - `ipv4_address`
-    - `short_text`
-- `constant`: Returns a fixed value.
-- `null`: Sets the column to NULL.
-- `template`: Uses Go templates to generate values.
+*   **`faker`**: Names, Emails, Phones, Addresses, Company names, IPs.
+*   **`hash`**: Deterministic MD5 hashes for tokens or IDs.
+*   **`counter`**: Incremental numbers for sequencing.
+*   **`template`**: Dynamic strings using Go templates.
+*   **`constant`**: Fixed values for status flags or static text.
+*   **`null`**: For clearing out sensitive optional fields.
 
-## Data Producers
+---
 
-You can control how rows are selected for masking using the `source` block:
+## 🛠 Development
 
-### Table (Default)
-```toml
-[[tables]]
-name = "users"
-pk = "id"
-# Omitted source defaults to table scan
-```
+We use [Task](https://taskfile.dev/) for a "boring" and predictable development workflow:
 
-### View
-```toml
-[[tables]]
-name = "users"
-pk = "id"
-[tables.source]
-type = "view"
-name = "active_users_view"
-```
+*   `task build`: Compile the binary.
+*   `task fmt`: Format code and sort imports.
+*   `task lint`: Run comprehensive static analysis.
+*   `task test`: Run unit and integration tests (uses Testcontainers).
+*   `task ready`: The full quality gate (fmt + lint + test).
 
-### Custom Query
-```toml
-[[tables]]
-name = "users"
-pk = "id"
-[tables.source]
-type = "query"
-sql = "SELECT id FROM users WHERE active = true ORDER BY id"
-```
-*Note: Custom queries MUST include `ORDER BY pk` to ensure determinism.*
+---
 
-## Testing
+## ⚖️ License
 
-```bash
-task test
-```
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+*Built with ❤️ for the PostgreSQL community.*
