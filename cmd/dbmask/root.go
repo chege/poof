@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/christopher/masker/internal/ui"
@@ -19,6 +20,11 @@ var rootCmd = &cobra.Command{
 	Long:  "A declarative, deterministic, and parallel-safe data masking tool for PostgreSQL.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		ui.Init(noColor)
+		// Initialize structured logging
+		handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		})
+		slog.SetDefault(slog.New(handler))
 	},
 }
 

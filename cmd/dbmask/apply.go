@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"os"
 
 	"github.com/christopher/masker/internal/config"
@@ -90,6 +91,7 @@ var applyCmd = &cobra.Command{
 			ui.Success("Dry run completed successfully. No changes were made.")
 		} else {
 			ui.Success("Masking completed successfully.")
+			slog.Info("Masking process finished.")
 		}
 	},
 }

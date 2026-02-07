@@ -3,7 +3,7 @@ package masker
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/christopher/masker/internal/config"
 	"github.com/christopher/masker/internal/db"
@@ -91,7 +91,7 @@ func (e *Engine) Apply(ctx context.Context) (*MaskingReport, error) {
 
 func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p producer.Producer) ([]Diff, error) {
 	if !e.DryRun {
-		log.Printf("Masking table %s with %d workers...", tableCfg.Name, e.Workers)
+		slog.Info("Masking table", "table", tableCfg.Name, "workers", e.Workers)
 	}
 
 	columnNames := make([]string, 0, len(tableCfg.Columns))
