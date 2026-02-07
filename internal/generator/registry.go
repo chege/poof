@@ -3,6 +3,7 @@ package generator
 
 import (
 	"fmt"
+	"log/slog"
 	"sync"
 
 	"github.com/christopher/masker/internal/config"
@@ -23,6 +24,7 @@ func RegisterGenerator(name string, factory Factory) {
 	if _, dup := factories[name]; dup {
 		panic(fmt.Sprintf("generator %q already registered", name))
 	}
+	slog.Debug("Registering generator", "name", name)
 	factories[name] = factory
 }
 

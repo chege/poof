@@ -4,6 +4,7 @@ package generator
 import (
 	"encoding/binary"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"sync"
 )
@@ -20,6 +21,7 @@ var (
 func RegisterFakerProvider(name string, provider FakerProvider) {
 	fakerMu.Lock()
 	defer fakerMu.Unlock()
+	slog.Debug("Registering faker provider", "name", name)
 	fakerProviders[name] = provider
 }
 

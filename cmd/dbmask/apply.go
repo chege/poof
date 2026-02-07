@@ -56,6 +56,8 @@ var applyCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		slog.Info("Starting masking process", "database", dbName, "config", configPath, "dry_run", dryRun)
+
 		if !cfg.IsAllowed(dbName) && !force {
 			ui.Error("Database %q is not in the allowed_db_names list and --force was not provided.", dbName)
 			os.Exit(1)

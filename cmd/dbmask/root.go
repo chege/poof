@@ -2,7 +2,6 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 
@@ -32,7 +31,7 @@ var rootCmd = &cobra.Command{
 // Execute starts the CLI application.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		slog.Error("CLI execution failed", "error", err)
 		os.Exit(1)
 	}
 }

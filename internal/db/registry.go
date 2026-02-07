@@ -4,6 +4,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 )
 
@@ -14,6 +15,7 @@ var factories = make(map[string]Factory)
 
 // Register adds a new database factory for the given URI scheme (e.g. "postgres").
 func Register(scheme string, factory Factory) {
+	slog.Debug("Registering database backend", "scheme", scheme)
 	factories[scheme] = factory
 }
 

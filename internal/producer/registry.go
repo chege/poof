@@ -4,6 +4,7 @@ package producer
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sync"
 
 	"github.com/christopher/masker/internal/config"
@@ -25,6 +26,7 @@ func Register(name string, factory Factory) {
 	if _, dup := factories[name]; dup {
 		panic(fmt.Sprintf("producer factory %q already registered", name))
 	}
+	slog.Debug("Registering producer factory", "name", name)
 	factories[name] = factory
 }
 
