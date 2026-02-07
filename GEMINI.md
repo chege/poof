@@ -29,6 +29,7 @@ Gemini MUST assume the following tools are installed and available for use:
 - `git`
 - `docker`
 - `task` (Taskfile.dev)
+- `staticcheck`
 - `speckit` / `specify-cli`
 - `rg` (ripgrep)
 - `jq`, `sed`, `awk`
@@ -86,7 +87,7 @@ The project follows a standard Go project layout:
 
 Gemini MUST prefer using `task` (Taskfile.dev) for all development and verification steps.
 
-- **`task ready`**: (Preferred) Run `tidy` -> `fmt` -> `vet` -> `test`. Use this as the standard quality gate.
+- **`task ready`**: (Preferred) Run `tidy` -> `fmt` -> `vet` -> `staticcheck` -> `test`. Use this as the standard quality gate.
 - **`task verify`**: Run `doctor` and `validate`. Use this to check environment and config health.
 - **`task all`**: Run the full `ready` suite and then `build`.
 - **`task rebuild`**: Clean and rebuild the binary.

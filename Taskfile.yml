@@ -37,12 +37,18 @@ tasks:
     cmds:
       - go vet ./...
 
+  staticcheck:
+    desc: Run staticcheck
+    cmds:
+      - staticcheck ./...
+
   ready:
-    desc: Prepare code (tidy, fmt, vet) and run tests
+    desc: Prepare code (tidy, fmt, vet, staticcheck) and run tests
     cmds:
       - task: tidy
       - task: fmt
       - task: vet
+      - task: staticcheck
       - task: test
 
   doctor:
