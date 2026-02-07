@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/jackc/pgconn"
 	"github.com/schollz/progressbar/v3"
@@ -269,8 +270,12 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 				}
 
 				results.Failed++
-				// In a real app, we might want to continue or abort based on config
-				return nil, results, fmt.Errorf("update error on table %s, pk %v: %w", tableCfg.Name, row.pkValue, err)
+				slog.Error("row masking failed",
+					"table", tableCfg.Name,
+					"pk", row.pkValue,
+					"error", err,
+				)
+				break
 			}
 			if bar != nil {
 				_ = bar.Add(1)

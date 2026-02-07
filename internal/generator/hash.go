@@ -1,8 +1,6 @@
 package generator
 
 import (
-	/* #nosec G501 */
-	"crypto/md5"
 	"fmt"
 )
 
@@ -14,7 +12,5 @@ func NewHashGenerator() Generator {
 }
 
 func (g *hashGenerator) Generate(ctx RowContext) (any, error) {
-	data := []byte(fmt.Sprintf("%s:%s:%v", ctx.TableName, ctx.ColumnName, ctx.PrimaryKeyValue))
-	/* #nosec G401 */
-	return fmt.Sprintf("%x", md5.Sum(data)), nil
+	return fmt.Sprintf("%x", ctx.Seed), nil
 }

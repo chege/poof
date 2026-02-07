@@ -1,26 +1,24 @@
 package generator
 
 import (
-	"fmt"
-	"sync"
-	"sync/atomic"
+	"encoding/binary"
 )
 
 type counterGenerator struct {
-	counts sync.Map
 }
 
-// NewCounterGenerator creates a new generator that returns incrementing integers.
+// NewCounterGenerator creates a new generator that returns deterministic integers based on the row seed.
+// Note: This replaces the global incrementing counter to maintain parallelism-safe determinism.
 func NewCounterGenerator() Generator {
 	return &counterGenerator{}
 }
 
 func (g *counterGenerator) Generate(ctx RowContext) (any, error) {
-	key := fmt.Sprintf("%s:%s", ctx.TableName, ctx.ColumnName)
-	val, _ := g.counts.LoadOrStore(key, new(int64))
-	ptr, ok := val.(*int64)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type in counter storage")
+	// Use the first 8 bytes of the deterministic seed as an int64
+	// #nosec G115 -- seed conversion is intentional.
+	val := int64(binary.BigEndian.Uint64(ctx.Seed[:8]))
+	if val < 0 {
+		val = -val
 	}
-	return atomic.AddInt64(ptr, 1), nil
+	return val, nil
 }
