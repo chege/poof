@@ -6,6 +6,7 @@ import (
 
 	"github.com/christopher/masker/internal/config"
 	"github.com/christopher/masker/internal/db"
+	_ "github.com/christopher/masker/internal/db/postgres"
 	"github.com/christopher/masker/internal/generator"
 	"github.com/christopher/masker/internal/masker"
 	"github.com/christopher/masker/internal/ui"
@@ -29,7 +30,7 @@ var planCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		client, err := db.NewClient(ctx, dbConnStr)
+		client, err := db.Connect(ctx, dbConnStr)
 		if err != nil {
 			ui.Error("DB error: %v", err)
 			os.Exit(1)
@@ -40,14 +41,22 @@ var planCmd = &cobra.Command{
 		engine.DryRun = true
 
 		ui.Bold("Masking Plan:")
-		diffs, err := engine.Apply(ctx)
+		report, err := engine.Apply(ctx)
 		if err != nil {
 			ui.Error("Plan failed: %v", err)
 			os.Exit(1)
 		}
 
+		for _, t := range report.Tables {
+			ui.Info("Table: %s (~%d rows)", ui.Bold(t.Name), t.Estimates)
+			for _, col := range t.Columns {
+				ui.Info("  - Column: %s", col)
+			}
+		}
+
+		ui.Bold("\nSample Changes (first 5 rows):")
 		currentTable := ""
-		for _, d := range diffs {
+		for _, d := range report.Diffs {
 			if d.TableName != currentTable {
 				ui.Info("Table: %s", ui.Bold(d.TableName))
 				currentTable = d.TableName
@@ -55,7 +64,7 @@ var planCmd = &cobra.Command{
 			ui.Info("  [%v] %s: %v -> %v", d.PKValue, d.ColumnName, d.OldValue, d.NewValue)
 		}
 
-		ui.Success("Plan generated for %d changes.", len(diffs))
+		ui.Success("Plan generated successfully.")
 	},
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	_ "github.com/christopher/masker/internal/db/postgres"
 	"github.com/christopher/masker/internal/masker"
 	"github.com/christopher/masker/internal/ui"
 	"github.com/spf13/cobra"

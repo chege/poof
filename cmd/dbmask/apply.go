@@ -6,6 +6,7 @@ import (
 
 	"github.com/christopher/masker/internal/config"
 	"github.com/christopher/masker/internal/db"
+	_ "github.com/christopher/masker/internal/db/postgres" // Register Postgres backend
 	"github.com/christopher/masker/internal/generator"
 	"github.com/christopher/masker/internal/masker"
 	"github.com/christopher/masker/internal/ui"
@@ -13,8 +14,9 @@ import (
 )
 
 var (
-	force bool
-	yes   bool
+	force  bool
+	yes    bool
+	dryRun bool
 )
 
 var applyCmd = &cobra.Command{
@@ -35,9 +37,9 @@ var applyCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		client, err := db.NewClient(ctx, dbConnStr)
+		client, err := db.Connect(ctx, dbConnStr)
 		if err != nil {
-			ui.Error("DB error: %v", err)
+			ui.Error("DB connection error: %v", err)
 			os.Exit(1)
 		}
 		defer client.Close()
@@ -53,7 +55,7 @@ var applyCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		if !yes {
+		if !yes && !dryRun {
 			ui.Info("Running plan before apply...")
 			engine := masker.NewEngine(client, cfg, workers)
 			engine.DryRun = true
@@ -62,18 +64,28 @@ var applyCmd = &cobra.Command{
 				ui.Error("Pre-apply plan failed: %v", err)
 				os.Exit(1)
 			}
-			ui.Success("Plan summary generated.")
+			ui.Success("Pre-flight plan completed.")
 		}
 
-		ui.Info("Applying masking...")
+		if dryRun {
+			ui.Info("Applying masking (DRY RUN)...")
+		} else {
+			ui.Info("Applying masking...")
+		}
+
 		engine := masker.NewEngine(client, cfg, workers)
+		engine.DryRun = dryRun
 		_, err = engine.Apply(ctx)
 		if err != nil {
 			ui.Error("Apply failed: %v", err)
 			os.Exit(1)
 		}
 
-		ui.Success("Masking completed successfully.")
+		if dryRun {
+			ui.Success("Dry run completed successfully. No changes were made.")
+		} else {
+			ui.Success("Masking completed successfully.")
+		}
 	},
 }
 
@@ -81,4 +93,5 @@ func init() {
 	rootCmd.AddCommand(applyCmd)
 	applyCmd.Flags().BoolVar(&force, "force", false, "Force apply even if database is not in allowlist")
 	applyCmd.Flags().BoolVarP(&yes, "yes", "y", false, "Skip plan summary and proceed immediately")
+	applyCmd.Flags().BoolVar(&dryRun, "dry-run", false, "Execute masking but do not commit changes")
 }

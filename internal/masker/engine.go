@@ -12,10 +12,21 @@ import (
 )
 
 type Engine struct {
-	DB      *db.Client
+	DB      db.DB
 	Config  *config.Config
 	Workers int
 	DryRun  bool
+}
+
+type TableReport struct {
+	Name      string
+	Estimates int64
+	Columns   []string
+}
+
+type MaskingReport struct {
+	Tables []TableReport
+	Diffs  []Diff
 }
 
 type Diff struct {
@@ -26,7 +37,7 @@ type Diff struct {
 	NewValue   any
 }
 
-func NewEngine(client *db.Client, cfg *config.Config, workers int) *Engine {
+func NewEngine(client db.DB, cfg *config.Config, workers int) *Engine {
 	if workers <= 0 {
 		workers = 1
 	}
@@ -43,16 +54,32 @@ type rowData struct {
 	newValues []any
 }
 
-func (e *Engine) Apply(ctx context.Context) ([]Diff, error) {
-	var allDiffs []Diff
+func (e *Engine) Apply(ctx context.Context) (*MaskingReport, error) {
+	report := &MaskingReport{}
 	for _, tableCfg := range e.Config.Tables {
+		count, err := e.DB.EstimateRowCount(ctx, tableCfg.Name)
+		if err != nil {
+			count = 0 // Ignore estimate errors
+		}
+
+		cols := make([]string, len(tableCfg.Columns))
+		for i, c := range tableCfg.Columns {
+			cols[i] = c.Name
+		}
+
+		report.Tables = append(report.Tables, TableReport{
+			Name:      tableCfg.Name,
+			Estimates: count,
+			Columns:   cols,
+		})
+
 		diffs, err := e.maskTable(ctx, tableCfg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to mask table %s: %w", tableCfg.Name, err)
 		}
-		allDiffs = append(allDiffs, diffs...)
+		report.Diffs = append(report.Diffs, diffs...)
 	}
-	return allDiffs, nil
+	return report, nil
 }
 
 func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table) ([]Diff, error) {
@@ -72,7 +99,13 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table) ([]Diff, 
 		generators[col.Name] = gen
 	}
 
-	rows, err := e.DB.FetchRows(ctx, tableCfg.Name, tableCfg.PK, columnNames)
+	// Limit fetching in DryRun for plan preview
+	limit := 0
+	if e.DryRun {
+		limit = 5
+	}
+
+	rows, err := e.DB.FetchRows(ctx, tableCfg.Name, tableCfg.PK, columnNames, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch rows: %w", err)
 	}
@@ -82,7 +115,7 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table) ([]Diff, 
 	var updateQuery string
 	if !e.DryRun {
 		var err error
-		tx, err = e.DB.Pool.Begin(ctx)
+		tx, err = e.DB.Begin(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to start transaction: %w", err)
 		}
@@ -136,11 +169,7 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table) ([]Diff, 
 	// Reader goroutine
 	go func() {
 		defer close(inputChan)
-		count := 0
 		for rows.Next() {
-			if e.DryRun && count >= 5 {
-				break
-			}
 			values, err := rows.Values()
 			if err != nil {
 				select {
@@ -150,7 +179,6 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table) ([]Diff, 
 				return
 			}
 			inputChan <- rowData{pkValue: values[0], oldValues: values[1:]}
-			count++
 		}
 	}()
 
@@ -175,7 +203,7 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table) ([]Diff, 
 			}
 		} else {
 			args := append([]any{row.pkValue}, row.newValues...)
-			_, err = tx.Exec(ctx, updateQuery, args...)
+			err = tx.Exec(ctx, updateQuery, args...)
 			if err != nil {
 				return nil, fmt.Errorf("failed to update row: %w", err)
 			}

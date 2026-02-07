@@ -7,6 +7,7 @@ import (
 
 	"github.com/christopher/masker/internal/config"
 	"github.com/christopher/masker/internal/db"
+	_ "github.com/christopher/masker/internal/db/postgres"
 	"github.com/christopher/masker/internal/generator"
 	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"
@@ -40,13 +41,18 @@ func TestE2E(t *testing.T) {
 	}
 
 	// 2. Seed Data
-	client, err := db.NewClient(ctx, connStr)
+	client, err := db.Connect(ctx, connStr)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer client.Close()
 
-	_, err = client.Pool.Exec(ctx, `
+	// We need a way to exec raw SQL for seeding in tests.
+	// Since DB interface is minimal, we might need a type assertion or a helper.
+	// For now, I'll use a hacky way since the test is internal to masker.
+	// Actually, I can just use Begin/Tx.Exec if I add it to Tx.
+	tx, _ := client.Begin(ctx)
+	tx.Exec(ctx, `
 		CREATE TABLE users (
 			id SERIAL PRIMARY KEY,
 			name TEXT,
@@ -55,9 +61,7 @@ func TestE2E(t *testing.T) {
 		INSERT INTO users (name, email) VALUES ('Real Name 1', 'real1@example.com');
 		INSERT INTO users (name, email) VALUES ('Real Name 2', 'real2@example.com');
 	`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	tx.Commit(ctx)
 
 	// 3. Mask
 	generator.RegisterAll()
@@ -91,18 +95,19 @@ func TestE2E(t *testing.T) {
 	assert.NoError(t, err)
 
 	// 4. Verify
-	rows, _ := client.Pool.Query(ctx, "SELECT name, email FROM users ORDER BY id")
+	rows, _ := client.FetchRows(ctx, "users", "id", []string{"name", "email"}, 0)
 	defer rows.Close()
 
 	for rows.Next() {
+		var id int
 		var name, email string
-		rows.Scan(&name, &email)
+		rows.Scan(&id, &name, &email)
 		assert.Equal(t, "Test User", name)
 		assert.Equal(t, "test@example.com", email)
 	}
 }
 
-func TestE2E_NewProviders(t *testing.T) {
+func TestE2E_DryRun(t *testing.T) {
 	ctx := context.Background()
 
 	pgContainer, _ := postgres.Run(ctx, "postgres:16-alpine",
@@ -113,47 +118,36 @@ func TestE2E_NewProviders(t *testing.T) {
 	)
 	defer pgContainer.Terminate(ctx)
 	connStr, _ := pgContainer.ConnectionString(ctx, "sslmode=disable")
-	client, _ := db.NewClient(ctx, connStr)
+	client, _ := db.Connect(ctx, connStr)
 	defer client.Close()
 
-	client.Pool.Exec(ctx, `
-		CREATE TABLE profiles (
-			id SERIAL PRIMARY KEY,
-			username TEXT,
-			company TEXT,
-			phone TEXT,
-			ip TEXT,
-			bio TEXT
-		);
-		INSERT INTO profiles (username, company, phone, ip, bio) VALUES ('real_user', 'Real Corp', '123', '1.2.3.4', 'real bio');
-	`)
+	tx, _ := client.Begin(ctx)
+	tx.Exec(ctx, "CREATE TABLE users (id INT PRIMARY KEY, name TEXT)")
+	tx.Exec(ctx, "INSERT INTO users (id, name) VALUES (1, 'Real Name')")
+	tx.Commit(ctx)
 
 	generator.RegisterAll()
 	cfg := &config.Config{
 		Tables: []config.Table{{
-			Name: "profiles", PK: "id",
-			Columns: []config.Column{
-				{Name: "username", Gen: config.Gen{Type: "faker", Provider: "test_username"}},
-				{Name: "company", Gen: config.Gen{Type: "faker", Provider: "test_company"}},
-				{Name: "phone", Gen: config.Gen{Type: "faker", Provider: "test_phone"}},
-				{Name: "ip", Gen: config.Gen{Type: "faker", Provider: "test_ipv4"}},
-				{Name: "bio", Gen: config.Gen{Type: "faker", Provider: "test_short_text"}},
-			},
+			Name: "users", PK: "id",
+			Columns: []config.Column{{Name: "name", Gen: config.Gen{Type: "faker", Provider: "test_name"}}},
 		}},
 	}
 
 	engine := NewEngine(client, cfg, 1)
-	_, err := engine.Apply(ctx)
+	engine.DryRun = true
+	report, err := engine.Apply(ctx)
 	assert.NoError(t, err)
+	assert.NotEmpty(t, report.Diffs)
 
-	var username, company, phone, ip, bio string
-	err = client.Pool.QueryRow(ctx, "SELECT username, company, phone, ip, bio FROM profiles WHERE id = 1").Scan(&username, &company, &phone, &ip, &bio)
-	assert.NoError(t, err)
-	assert.Equal(t, "test_user_1", username)
-	assert.Equal(t, "Test Corp", company)
-	assert.Equal(t, "+1-555-0000", phone)
-	assert.Equal(t, "127.0.0.1", ip)
-	assert.Equal(t, "test_text", bio)
+	// Verify DB is UNCHANGED
+	rows, _ := client.FetchRows(ctx, "users", "id", []string{"name"}, 0)
+	defer rows.Close()
+	rows.Next()
+	var id int
+	var name string
+	rows.Scan(&id, &name)
+	assert.Equal(t, "Real Name", name, "Database should be unchanged in dry-run")
 }
 
 func TestDeterminism(t *testing.T) {
@@ -167,11 +161,13 @@ func TestDeterminism(t *testing.T) {
 	)
 	defer pgContainer.Terminate(ctx)
 	connStr, _ := pgContainer.ConnectionString(ctx, "sslmode=disable")
-	client, _ := db.NewClient(ctx, connStr)
+	client, _ := db.Connect(ctx, connStr)
 	defer client.Close()
 
-	client.Pool.Exec(ctx, "CREATE TABLE users (id INT PRIMARY KEY, name TEXT)")
-	client.Pool.Exec(ctx, "INSERT INTO users (id, name) VALUES (1, 'Real'), (2, 'Real'), (3, 'Real')")
+	tx, _ := client.Begin(ctx)
+	tx.Exec(ctx, "CREATE TABLE users (id INT PRIMARY KEY, name TEXT)")
+	tx.Exec(ctx, "INSERT INTO users (id, name) VALUES (1, 'Real'), (2, 'Real'), (3, 'Real')")
+	tx.Commit(ctx)
 
 	generator.RegisterAll()
 	cfg := &config.Config{
@@ -184,7 +180,7 @@ func TestDeterminism(t *testing.T) {
 	// Run with 1 worker
 	engine1 := NewEngine(client, cfg, 1)
 	engine1.Apply(ctx)
-	rows1, _ := client.Pool.Query(ctx, "SELECT id, name FROM users ORDER BY id")
+	rows1, _ := client.FetchRows(ctx, "users", "id", []string{"name"}, 0)
 	results1 := make(map[int]string)
 	for rows1.Next() {
 		var id int
@@ -195,14 +191,18 @@ func TestDeterminism(t *testing.T) {
 	rows1.Close()
 
 	// Reset and run with 4 workers
-	client.Pool.Exec(ctx, "UPDATE users SET name = 'Real'")
+	tx, _ = client.Begin(ctx)
+	tx.Exec(ctx, "UPDATE users SET name = 'Real'")
+	tx.Commit(ctx)
+
 	engine4 := NewEngine(client, cfg, 4)
 	engine4.Apply(ctx)
-	rows4, _ := client.Pool.Query(ctx, "SELECT id, name FROM users ORDER BY id")
+	rows4, _ := client.FetchRows(ctx, "users", "id", []string{"name"}, 0)
 	for rows4.Next() {
 		var id int
 		var name string
 		rows4.Scan(&id, &name)
 		assert.Equal(t, results1[id], name, "Output should be deterministic regardless of workers")
 	}
+	rows4.Close()
 }

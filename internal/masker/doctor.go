@@ -5,6 +5,7 @@ import (
 
 	"github.com/christopher/masker/internal/config"
 	"github.com/christopher/masker/internal/db"
+	_ "github.com/christopher/masker/internal/db/postgres"
 	"github.com/christopher/masker/internal/generator"
 	"github.com/christopher/masker/internal/ui"
 )
@@ -22,7 +23,7 @@ func CheckReadiness(ctx context.Context, configPath string, dbConnStr string) bo
 	}
 
 	// 2. Database Check
-	client, err := db.NewClient(ctx, dbConnStr)
+	client, err := db.Connect(ctx, dbConnStr)
 	if err != nil {
 		ui.Error("Database connectivity: %v", err)
 		success = false
