@@ -12,7 +12,7 @@ var explain bool
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Initialize a new dbmask.hcl configuration file",
+	Short: "Initialize a new dbmask.toml configuration file",
 	Run: func(cmd *cobra.Command, args []string) {
 		path := "dbmask.toml"
 		if _, err := os.Stat(path); err == nil {

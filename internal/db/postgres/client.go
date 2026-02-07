@@ -89,6 +89,10 @@ func (w *rowsWrapper) Values() ([]any, error) {
 	return w.Rows.Values()
 }
 
+func (w *rowsWrapper) Err() error {
+	return w.Rows.Err()
+}
+
 type txWrapper struct {
 	pgx.Tx
 }

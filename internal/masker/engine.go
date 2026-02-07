@@ -66,7 +66,7 @@ func (e *Engine) Apply(ctx context.Context) (*MaskingReport, error) {
 
 		count, err := p.EstimateCount(ctx)
 		if err != nil {
-			count = 0 // Ignore estimate errors
+			count = 0
 		}
 
 		cols := make([]string, len(tableCfg.Columns))
@@ -82,7 +82,7 @@ func (e *Engine) Apply(ctx context.Context) (*MaskingReport, error) {
 
 		diffs, err := e.maskTable(ctx, tableCfg, p)
 		if err != nil {
-			return nil, fmt.Errorf("failed to mask table %s: %w", tableCfg.Name, err)
+			return nil, err // maskTable already wraps with context
 		}
 		report.Diffs = append(report.Diffs, diffs...)
 	}
@@ -102,7 +102,6 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 		generators[col.Name] = gen
 	}
 
-	// Limit fetching in DryRun for plan preview
 	limit := 0
 	if e.DryRun {
 		limit = 5
@@ -122,7 +121,11 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 		if err != nil {
 			return nil, fmt.Errorf("failed to start transaction: %w", err)
 		}
-		defer tx.Rollback(ctx)
+		defer func() {
+			if tx != nil {
+				_ = tx.Rollback(ctx)
+			}
+		}()
 
 		updateQuery = fmt.Sprintf("UPDATE %s SET ", tableCfg.Name)
 		for i, col := range columnNames {
@@ -138,13 +141,13 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 	inputChan := make(chan rowData, e.Workers*2)
 	outputChan := make(chan rowData, e.Workers*2)
 
-	// Reader goroutine
+	// Reader
 	g.Go(func() error {
 		defer close(inputChan)
 		for rows.Next() {
 			values, err := rows.Values()
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to read values: %w", err)
 			}
 			select {
 			case inputChan <- rowData{pkValue: values[0], oldValues: values[1:]}:
@@ -152,10 +155,10 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 				return gCtx.Err()
 			}
 		}
-		return nil
+		return rows.Err()
 	})
 
-	// Worker goroutines
+	// Workers
 	for i := 0; i < e.Workers; i++ {
 		g.Go(func() error {
 			for {
@@ -168,11 +171,9 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 					}
 					newValues := make([]any, len(columnNames))
 					for j, colName := range columnNames {
-						gen := generators[colName]
-						rowCtx := generator.NewRowContext(tableCfg.Name, colName, row.pkValue)
-						val, err := gen.Generate(rowCtx)
+						val, err := generators[colName].Generate(generator.NewRowContext(tableCfg.Name, colName, row.pkValue))
 						if err != nil {
-							return err
+							return fmt.Errorf("gen error: %w", err)
 						}
 						newValues[j] = val
 					}
@@ -187,7 +188,7 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 		})
 	}
 
-	// Coordinator to close outputChan
+	// Coordinator
 	go func() {
 		_ = g.Wait()
 		close(outputChan)
@@ -200,7 +201,7 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 		bar = progressbar.Default(count, fmt.Sprintf("Masking %s", tableCfg.Name))
 	}
 
-	// Writer/Collector loop (runs in the current goroutine)
+	// Writer loop
 	for row := range outputChan {
 		if e.DryRun {
 			for i, colName := range columnNames {
@@ -214,9 +215,8 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 			}
 		} else {
 			args := append([]any{row.pkValue}, row.newValues...)
-			err = tx.Exec(ctx, updateQuery, args...)
-			if err != nil {
-				return nil, fmt.Errorf("failed to update row: %w", err)
+			if err := tx.Exec(ctx, updateQuery, args...); err != nil {
+				return nil, fmt.Errorf("update error: %w", err)
 			}
 			if bar != nil {
 				_ = bar.Add(1)
@@ -225,19 +225,19 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 	}
 
 	if err := g.Wait(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("table %s masking failed: %w", tableCfg.Name, err)
 	}
 
 	if !e.DryRun {
 		if bar != nil {
 			_ = bar.Finish()
-			fmt.Println() // Newline after bar
+			fmt.Println()
 		}
-		return nil, tx.Commit(ctx)
-	} else {
-		if tx != nil {
-			tx.Rollback(ctx)
+		if err := tx.Commit(ctx); err != nil {
+			return nil, fmt.Errorf("commit error: %w", err)
 		}
+		tx = nil
 	}
+
 	return diffs, nil
 }

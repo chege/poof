@@ -9,6 +9,7 @@ type Rows interface {
 	Next() bool
 	Values() ([]any, error)
 	Scan(dest ...any) error
+	Err() error
 	Close()
 }
 

@@ -48,8 +48,9 @@ func TestE2E(t *testing.T) {
 	}
 	defer client.Close()
 
-	tx, _ := client.Begin(ctx)
-	tx.Exec(ctx, `
+	tx, err := client.Begin(ctx)
+	assert.NoError(t, err)
+	err = tx.Exec(ctx, `
 		CREATE TABLE users (
 			id SERIAL PRIMARY KEY,
 			name TEXT,
@@ -58,7 +59,9 @@ func TestE2E(t *testing.T) {
 		INSERT INTO users (name, email) VALUES ('Real Name 1', 'real1@example.com');
 		INSERT INTO users (name, email) VALUES ('Real Name 2', 'real2@example.com');
 	`)
-	tx.Commit(ctx)
+	assert.NoError(t, err)
+	err = tx.Commit(ctx)
+	assert.NoError(t, err)
 
 	// 3. Mask
 	generator.RegisterAll()
@@ -94,7 +97,8 @@ func TestE2E(t *testing.T) {
 	assert.NoError(t, err)
 
 	// 4. Verify
-	rows, _ := client.FetchRows(ctx, "users", "id", []string{"name", "email"}, 0)
+	rows, err := client.FetchRows(ctx, "users", "id", []string{"name", "email"}, 0)
+	assert.NoError(t, err)
 	defer rows.Close()
 
 	for rows.Next() {
@@ -113,21 +117,34 @@ func TestE2E(t *testing.T) {
 func TestE2E_DryRun(t *testing.T) {
 	ctx := context.Background()
 
-	pgContainer, _ := postgres.Run(ctx, "postgres:16-alpine",
+	pgContainer, err := postgres.Run(ctx, "postgres:16-alpine",
 		postgres.WithDatabase("testdb"),
 		postgres.WithUsername("user"),
 		postgres.WithPassword("pass"),
 		testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2)),
 	)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer pgContainer.Terminate(ctx)
-	connStr, _ := pgContainer.ConnectionString(ctx, "sslmode=disable")
-	client, _ := db.Connect(ctx, connStr)
+	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	client, err := db.Connect(ctx, connStr)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer client.Close()
 
-	tx, _ := client.Begin(ctx)
-	tx.Exec(ctx, "CREATE TABLE users (id INT PRIMARY KEY, name TEXT)")
-	tx.Exec(ctx, "INSERT INTO users (id, name) VALUES (1, 'Real Name')")
-	tx.Commit(ctx)
+	tx, err := client.Begin(ctx)
+	assert.NoError(t, err)
+	err = tx.Exec(ctx, "CREATE TABLE users (id INT PRIMARY KEY, name TEXT)")
+	assert.NoError(t, err)
+	err = tx.Exec(ctx, "INSERT INTO users (id, name) VALUES (1, 'Real Name')")
+	assert.NoError(t, err)
+	err = tx.Commit(ctx)
+	assert.NoError(t, err)
 
 	generator.RegisterAll()
 	cfg := &config.Config{
@@ -146,7 +163,8 @@ func TestE2E_DryRun(t *testing.T) {
 	assert.NotEmpty(t, report.Diffs)
 
 	// Verify DB is UNCHANGED
-	rows, _ := client.FetchRows(ctx, "users", "id", []string{"name"}, 0)
+	rows, err := client.FetchRows(ctx, "users", "id", []string{"name"}, 0)
+	assert.NoError(t, err)
 	defer rows.Close()
 	rows.Next()
 	var id int
@@ -158,23 +176,35 @@ func TestE2E_DryRun(t *testing.T) {
 func TestE2E_QueryProducer(t *testing.T) {
 	ctx := context.Background()
 
-	pgContainer, _ := postgres.Run(ctx, "postgres:16-alpine",
+	pgContainer, err := postgres.Run(ctx, "postgres:16-alpine",
 		postgres.WithDatabase("testdb"),
 		postgres.WithUsername("user"),
 		postgres.WithPassword("pass"),
 		testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2)),
 	)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer pgContainer.Terminate(ctx)
-	connStr, _ := pgContainer.ConnectionString(ctx, "sslmode=disable")
-	client, _ := db.Connect(ctx, connStr)
+	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	client, err := db.Connect(ctx, connStr)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer client.Close()
 
-	tx, _ := client.Begin(ctx)
-	tx.Exec(ctx, `
+	tx, err := client.Begin(ctx)
+	assert.NoError(t, err)
+	err = tx.Exec(ctx, `
 		CREATE TABLE users (id INT PRIMARY KEY, name TEXT, active BOOLEAN);
 		INSERT INTO users (id, name, active) VALUES (1, 'Real 1', true), (2, 'Real 2', false);
 	`)
-	tx.Commit(ctx)
+	assert.NoError(t, err)
+	err = tx.Commit(ctx)
+	assert.NoError(t, err)
 
 	generator.RegisterAll()
 	cfg := &config.Config{
@@ -191,7 +221,7 @@ func TestE2E_QueryProducer(t *testing.T) {
 	}
 
 	engine := NewEngine(client, cfg, 1)
-	_, err := engine.Apply(ctx)
+	_, err = engine.Apply(ctx)
 	assert.NoError(t, err)
 
 	// Verify only active user is masked
@@ -216,21 +246,34 @@ func TestE2E_QueryProducer(t *testing.T) {
 func TestDeterminism(t *testing.T) {
 	ctx := context.Background()
 
-	pgContainer, _ := postgres.Run(ctx, "postgres:16-alpine",
+	pgContainer, err := postgres.Run(ctx, "postgres:16-alpine",
 		postgres.WithDatabase("testdb"),
 		postgres.WithUsername("user"),
 		postgres.WithPassword("pass"),
 		testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2)),
 	)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer pgContainer.Terminate(ctx)
-	connStr, _ := pgContainer.ConnectionString(ctx, "sslmode=disable")
-	client, _ := db.Connect(ctx, connStr)
+	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	client, err := db.Connect(ctx, connStr)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer client.Close()
 
-	tx, _ := client.Begin(ctx)
-	tx.Exec(ctx, "CREATE TABLE users (id INT PRIMARY KEY, name TEXT)")
-	tx.Exec(ctx, "INSERT INTO users (id, name) VALUES (1, 'Real'), (2, 'Real'), (3, 'Real')")
-	tx.Commit(ctx)
+	tx, err := client.Begin(ctx)
+	assert.NoError(t, err)
+	err = tx.Exec(ctx, "CREATE TABLE users (id INT PRIMARY KEY, name TEXT)")
+	assert.NoError(t, err)
+	err = tx.Exec(ctx, "INSERT INTO users (id, name) VALUES (1, 'Real'), (2, 'Real'), (3, 'Real')")
+	assert.NoError(t, err)
+	err = tx.Commit(ctx)
+	assert.NoError(t, err)
 
 	generator.RegisterAll()
 	cfg := &config.Config{
@@ -244,8 +287,10 @@ func TestDeterminism(t *testing.T) {
 
 	// Run with 1 worker
 	engine1 := NewEngine(client, cfg, 1)
-	engine1.Apply(ctx)
-	rows1, _ := client.FetchRows(ctx, "users", "id", []string{"name"}, 0)
+	_, err = engine1.Apply(ctx)
+	assert.NoError(t, err)
+	rows1, err := client.FetchRows(ctx, "users", "id", []string{"name"}, 0)
+	assert.NoError(t, err)
 	results1 := make(map[int]string)
 	for rows1.Next() {
 		var id int
@@ -256,13 +301,18 @@ func TestDeterminism(t *testing.T) {
 	rows1.Close()
 
 	// Reset and run with 4 workers
-	tx, _ = client.Begin(ctx)
-	tx.Exec(ctx, "UPDATE users SET name = 'Real'")
-	tx.Commit(ctx)
+	tx, err = client.Begin(ctx)
+	assert.NoError(t, err)
+	err = tx.Exec(ctx, "UPDATE users SET name = 'Real'")
+	assert.NoError(t, err)
+	err = tx.Commit(ctx)
+	assert.NoError(t, err)
 
 	engine4 := NewEngine(client, cfg, 4)
-	engine4.Apply(ctx)
-	rows4, _ := client.FetchRows(ctx, "users", "id", []string{"name"}, 0)
+	_, err = engine4.Apply(ctx)
+	assert.NoError(t, err)
+	rows4, err := client.FetchRows(ctx, "users", "id", []string{"name"}, 0)
+	assert.NoError(t, err)
 	for rows4.Next() {
 		var id int
 		var name string
