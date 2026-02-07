@@ -6,7 +6,10 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
+	"github.com/go-playground/validator/v10"
 )
+
+var validate = validator.New()
 
 func LoadConfig(path string) (*Config, error) {
 	f, err := os.Open(path)
@@ -27,12 +30,9 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, fmt.Errorf("config contains unknown fields: %v", metadata.Undecoded())
 	}
 
-	if cfg.Database.DSN == "" {
-		return nil, fmt.Errorf("config must contain [database] dsn")
-	}
-
-	if len(cfg.Tables) == 0 {
-		return nil, fmt.Errorf("config must contain at least one [[tables]] block")
+	// Run declarative validation
+	if err := validate.Struct(&cfg); err != nil {
+		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
 
 	return &cfg, nil
