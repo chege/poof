@@ -1,14 +1,14 @@
-package masker
+package engine
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"github.com/christopher/masker/internal/config"
-	"github.com/christopher/masker/internal/db"
-	_ "github.com/christopher/masker/internal/db/postgres"
-	"github.com/christopher/masker/internal/generator"
+	"github.com/christopher/poof/internal/config"
+	"github.com/christopher/poof/internal/db"
+	_ "github.com/christopher/poof/internal/db/postgres"
+	"github.com/christopher/poof/internal/generator"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"

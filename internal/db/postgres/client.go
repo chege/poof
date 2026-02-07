@@ -1,4 +1,4 @@
-// Package postgres provides the PostgreSQL backend implementation for dbmask.
+// Package postgres provides the PostgreSQL backend implementation for poof.
 package postgres
 
 import (
@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/christopher/masker/internal/db"
+	"github.com/christopher/poof/internal/db"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )

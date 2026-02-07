@@ -1,16 +1,16 @@
-// Package main provides the CLI entry point for dbmask.
+// Package main provides the CLI entry point for poof.
 package main
 
 import (
 	"context"
 	"os"
 
-	"github.com/christopher/masker/internal/config"
-	"github.com/christopher/masker/internal/db"
-	_ "github.com/christopher/masker/internal/db/postgres"
-	"github.com/christopher/masker/internal/generator"
-	"github.com/christopher/masker/internal/masker"
-	"github.com/christopher/masker/internal/ui"
+	"github.com/christopher/poof/internal/config"
+	"github.com/christopher/poof/internal/db"
+	_ "github.com/christopher/poof/internal/db/postgres"
+	"github.com/christopher/poof/internal/engine"
+	"github.com/christopher/poof/internal/generator"
+	"github.com/christopher/poof/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -43,7 +43,7 @@ var planCmd = &cobra.Command{
 		}
 		defer client.Close()
 
-		engine := masker.NewEngine(client, cfg, workers)
+		engine := engine.NewEngine(client, cfg, workers)
 		engine.DryRun = true
 
 		ui.Bold("Masking Plan:")

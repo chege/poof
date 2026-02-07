@@ -46,7 +46,7 @@ internal/producer/
   query.go               # New: Custom SQL query producer
 internal/config/
   models.go              # Update: Add Source block to Table struct
-internal/masker/
+internal/poof/
   engine.go              # Update: Consume rows from Producer interface
 ```
 

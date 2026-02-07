@@ -11,7 +11,7 @@
    - This simplifies the CLI as users no longer *need* to provide `--db` if it's in the config, though the flag may still act as an override.
 
 3. **In-Place Mutation Safety**:
-   - The `masker.Engine` already uses transactions. I will ensure that in `DryRun` mode, the transaction is *always* rolled back, even if no changes were attempted, as a double-safety measure.
+   - The `poof.Engine` already uses transactions. I will ensure that in `DryRun` mode, the transaction is *always* rolled back, even if no changes were attempted, as a double-safety measure.
    - The engine will be updated to fetch the database name *before* starting work to verify against `allowed_db_names`.
 
 4. **Autonomous Mode**:
@@ -21,11 +21,11 @@
 ## Applied Suggestions (Automatic)
 
 - **Dependency Cleanup**: I will remove `github.com/hashicorp/hcl/v2` from `go.mod`.
-- **Default Path**: `root.go` will look for `dbmask.toml` if no path is provided.
+- **Default Path**: `root.go` will look for `poof.toml` if no path is provided.
 
 ## Risks & Mitigations
 
 - **Risk**: Users losing data due to in-place mutation.
-- **Mitigation**: Mandatory `dbmask plan` output before apply (unless `--yes` is used) and highly visible dry-run mode.
+- **Mitigation**: Mandatory `poof plan` output before apply (unless `--yes` is used) and highly visible dry-run mode.
 - **Risk**: Migrating existing users from HCL.
 - **Mitigation**: This is a breaking change (Version 6.0). I will provide a clear `init` command to help users recreate their configs in TOML.

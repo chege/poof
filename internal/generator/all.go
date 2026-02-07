@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/christopher/masker/internal/config"
+	"github.com/christopher/poof/internal/config"
 )
 
 var registerOnce sync.Once

@@ -43,12 +43,12 @@ internal/config/
   models.go              # Update: TOML tags and structure
   toml.go                # New: TOML parsing and strict validation
   hcl.go                 # Delete: HCL support removal
-cmd/dbmask/
-  root.go                # Update: Use dbmask.toml by default
+cmd/poof/
+  root.go                # Update: Use poof.toml by default
   init.go                # Update: Generate TOML template
   validate.go            # Update: Validate TOML
   apply.go               # Update: Enforce DryRun/Safety gates
-internal/masker/
+internal/poof/
   engine.go              # Update: Single DB logic, report refinements
 ```
 

@@ -1,11 +1,11 @@
-# Implementation Plan: dbmask-cli
+# Implementation Plan: poof-cli
 
-**Branch**: `001-dbmask-cli` | **Date**: 2026-02-07 | **Spec**: [spec.md](spec.md)
-**Input**: Feature specification from `/specs/001-dbmask-cli/spec.md`
+**Branch**: `001-poof-cli` | **Date**: 2026-02-07 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `/specs/001-poof-cli/spec.md`
 
 ## Summary
 
-Build a Go-based CLI tool `dbmask` that performs deterministic, declarative data masking for PostgreSQL. The tool will use HCL for configuration, `pgx` for database interaction, and a compile-time registry for extensible generators.
+Build a Go-based CLI tool `poof` that performs deterministic, declarative data masking for PostgreSQL. The tool will use HCL for configuration, `pgx` for database interaction, and a compile-time registry for extensible generators.
 
 ## Technical Context
 
@@ -36,7 +36,7 @@ Build a Go-based CLI tool `dbmask` that performs deterministic, declarative data
 ### Documentation (this feature)
 
 ```text
-specs/001-dbmask-cli/
+specs/001-poof-cli/
 ├── plan.md              # This file
 ├── spec.md              # Feature specification
 └── checklists/
@@ -47,7 +47,7 @@ specs/001-dbmask-cli/
 
 ```text
 cmd/
-  dbmask/
+  poof/
     main.go              # Entry point
     root.go              # Root command
     apply.go             # Apply command implementation
@@ -63,7 +63,7 @@ internal/
     constant.go          # Constant generator
     null.go              # Null generator
     test_fakers.go       # Predictable fakers for testing
-  masker/
+  poof/
     engine.go            # Orchestrates the masking process
     worker.go            # Parallel row processing
   db/

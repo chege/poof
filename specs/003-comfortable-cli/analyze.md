@@ -8,11 +8,11 @@
    - It will automatically disable colors if `!isatty.IsTerminal` or if `--no-color` is set.
 
 2. **Doctor Command Implementation**:
-   - The `doctor` logic will live in `internal/masker` as a series of check functions.
+   - The `doctor` logic will live in `internal/poof` as a series of check functions.
    - It will reuse the `config.LoadConfig` and `db.Client` logic but strictly in read-only mode.
 
 3. **Plan (Dry-Run) Capability**:
-   - The `masker.Engine` will be updated to handle a `DryRun` flag.
+   - The `poof.Engine` will be updated to handle a `DryRun` flag.
    - In `DryRun`, it will fetch rows, generate masked values, but *not* execute the `UPDATE` statements.
    - It will return a slice of "Diff" objects containing `PK`, `Column`, `OldValue`, and `NewValue`.
 

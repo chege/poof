@@ -25,8 +25,8 @@ pk = "id"
   provider = "email"
 `
 	if explain {
-		content = `# dbmask configuration file (TOML)
-# For more info see: https://github.com/christopher/masker
+		content = `# poof configuration file (TOML)
+# For more info see: https://github.com/christopher/poof
 
 # [database] section: Connection details.
 [database]

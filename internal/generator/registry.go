@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/christopher/masker/internal/config"
+	"github.com/christopher/poof/internal/config"
 )
 
 // Factory is a function that creates a new Generator based on its configuration.

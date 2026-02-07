@@ -1,14 +1,14 @@
-// Package masker coordinates the data masking process.
-package masker
+// Package engine coordinates the data masking process.
+package engine
 
 import (
 	"context"
 
-	"github.com/christopher/masker/internal/config"
-	"github.com/christopher/masker/internal/db"
-	_ "github.com/christopher/masker/internal/db/postgres" // Registered for side-effect database discovery.
-	"github.com/christopher/masker/internal/generator"
-	"github.com/christopher/masker/internal/ui"
+	"github.com/christopher/poof/internal/config"
+	"github.com/christopher/poof/internal/db"
+	_ "github.com/christopher/poof/internal/db/postgres" // Registered for side-effect database discovery.
+	"github.com/christopher/poof/internal/generator"
+	"github.com/christopher/poof/internal/ui"
 )
 
 // CheckReadiness performs a series of environment and configuration checks.

@@ -13,11 +13,11 @@
    - Unsupported schemes will return a clear error: `"unsupported database scheme: mysql"`.
 
 3. **Strict Dry-Run enforcement**:
-   - In `DryRun` mode, the `masker.Engine` will perform all data generation steps but will skip the `tx.Commit()` or use a read-only transaction if supported by the backend.
+   - In `DryRun` mode, the `poof.Engine` will perform all data generation steps but will skip the `tx.Commit()` or use a read-only transaction if supported by the backend.
    - To be absolutely safe, the PostgreSQL implementation can use `Rollback()` at the end of a dry-run session even if no changes were made.
 
 4. **Efficient Estimates**:
-   - For `dbmask plan`, we need row counts. 
+   - For `poof plan`, we need row counts. 
    - `SELECT count(*)` is slow on large tables.
    - We will implement `EstimateRowCount` in the interface. For PostgreSQL, we'll try to use `pg_class.reltuples` for a fast, near-instant estimate.
 

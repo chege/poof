@@ -14,7 +14,7 @@
 ## Phase 2: Foundational (Hardening) ✅
 
 - [x] T004 Update `internal/config/hcl.go` to use `hcl.Body.Content` for strict validation (fail on unknown fields)
-- [x] T005 Refactor `internal/masker/engine.go` to improve error messages and ensure all implicit behaviors are explicit
+- [x] T005 Refactor `internal/poof/engine.go` to improve error messages and ensure all implicit behaviors are explicit
 - [x] T006 Remove any identified dead code or unused abstractions in `internal/`
 
 ---
@@ -33,7 +33,7 @@
 
 ## Phase 4: Verification & Documentation ✅
 
-- [x] T014 Update E2E tests in `internal/masker/engine_test.go` to cover new providers
+- [x] T014 Update E2E tests in `internal/poof/engine_test.go` to cover new providers
 - [x] T015 Create a deterministic demo dataset (SQL/HCL) for documentation examples
 - [x] T016 Update `README.md` with Taskfile usage and new provider list
 - [x] T017 Final verification run with `task check`

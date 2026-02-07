@@ -23,9 +23,9 @@
 
 ## Phase 3: Engine Integration ✅
 
-- [x] T009 Refactor `internal/masker/engine.go` to use `Producer` for row selection
+- [x] T009 Refactor `internal/poof/engine.go` to use `Producer` for row selection
 - [x] T010 Update `Engine.Apply` to instantiate the correct producer based on config
-- [x] T011 Ensure `dbmask plan` and `dbmask doctor` correctly interact with producers
+- [x] T011 Ensure `poof plan` and `poof doctor` correctly interact with producers
 
 ---
 

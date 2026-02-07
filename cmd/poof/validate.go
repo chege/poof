@@ -1,11 +1,11 @@
-// Package main provides the CLI entry point for dbmask.
+// Package main provides the CLI entry point for poof.
 package main
 
 import (
 	"os"
 
-	"github.com/christopher/masker/internal/config"
-	"github.com/christopher/masker/internal/ui"
+	"github.com/christopher/poof/internal/config"
+	"github.com/christopher/poof/internal/ui"
 	"github.com/spf13/cobra"
 )
 

@@ -1,9 +1,9 @@
-# Feature Specification: dbmask — Autonomous Hardening & Tooling Phase
+# Feature Specification: poof — Autonomous Hardening & Tooling Phase
 
 **Feature Branch**: `002-hardening-tooling`  
 **Created**: 2026-02-07  
 **Status**: Draft  
-**Input**: User description: "SRS: dbmask — Autonomous Hardening & Tooling Phase VERSION: 2.1"
+**Input**: User description: "SRS: poof — Autonomous Hardening & Tooling Phase VERSION: 2.1"
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -17,7 +17,7 @@ As a developer, I want to use a set of opinionated tasks (via Taskfile.dev) to b
 
 **Acceptance Scenarios**:
 
-1. **Given** a clean repository, **When** I run `task build`, **Then** the `dbmask` binary is produced without errors.
+1. **Given** a clean repository, **When** I run `task build`, **Then** the `poof` binary is produced without errors.
 2. **Given** a codebase with linting or test failures, **When** I run `task check`, **Then** the process stops and reports the exact failure.
 
 ---
@@ -28,7 +28,7 @@ As a user, I want to have a broader set of deterministic faker providers (userna
 
 **Why this priority**: Enhances the utility of the tool by supporting more common database fields while maintaining the core principle of determinism.
 
-**Independent Test**: Can be tested by configuring a table with the new providers in `dbmask.hcl` and verifying that the database contains realistic but fake data that remains identical across multiple runs.
+**Independent Test**: Can be tested by configuring a table with the new providers in `poof.hcl` and verifying that the database contains realistic but fake data that remains identical across multiple runs.
 
 **Acceptance Scenarios**:
 

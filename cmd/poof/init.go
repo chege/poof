@@ -1,11 +1,11 @@
-// Package main provides the CLI entry point for dbmask.
+// Package main provides the CLI entry point for poof.
 package main
 
 import (
 	"os"
 
-	"github.com/christopher/masker/internal/config"
-	"github.com/christopher/masker/internal/ui"
+	"github.com/christopher/poof/internal/config"
+	"github.com/christopher/poof/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -13,9 +13,9 @@ var explain bool
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Initialize a new dbmask.toml configuration file",
+	Short: "Initialize a new poof.toml configuration file",
 	Run: func(_ *cobra.Command, _ []string) {
-		path := "dbmask.toml"
+		path := "poof.toml"
 		if _, err := os.Stat(path); err == nil {
 			ui.Error("File %s already exists. Refusing to overwrite.", path)
 			os.Exit(1)

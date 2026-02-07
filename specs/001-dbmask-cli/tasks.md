@@ -1,15 +1,15 @@
-# Tasks: dbmask-cli
+# Tasks: poof-cli
 
-**Input**: Design documents from `/specs/001-dbmask-cli/`
+**Input**: Design documents from `/specs/001-poof-cli/`
 **Prerequisites**: plan.md, spec.md
 
 ## Phase 1: Setup (Shared Infrastructure) ✅
 
 **Purpose**: Project initialization and basic structure
 
-- [x] T001 Initialize Cobra boilerplate in `cmd/dbmask/main.go` and `cmd/dbmask/root.go`
+- [x] T001 Initialize Cobra boilerplate in `cmd/poof/main.go` and `cmd/poof/root.go`
 - [x] T002 Add dependencies to `go.mod`: `hcl/v2`, `pgx/v5`, `go-faker/v4`, `testcontainers-go`
-- [x] T003 Create directory structure: `internal/config`, `internal/generator`, `internal/masker`, `internal/db`
+- [x] T003 Create directory structure: `internal/config`, `internal/generator`, `internal/poof`, `internal/db`
 
 ---
 
@@ -31,9 +31,9 @@
 **Goal**: Implement basic masking functionality with HCL config and faker generators.
 
 - [x] T010 Implement `faker` generator in `internal/generator/faker.go`
-- [x] T011 Implement `apply` command logic in `cmd/dbmask/apply.go`
-- [x] T012 Implement Safety Check (allowlist vs --force) in `cmd/dbmask/apply.go`
-- [x] T013 Implement Table masking orchestration in `internal/masker/engine.go`
+- [x] T011 Implement `apply` command logic in `cmd/poof/apply.go`
+- [x] T012 Implement Safety Check (allowlist vs --force) in `cmd/poof/apply.go`
+- [x] T013 Implement Table masking orchestration in `internal/poof/engine.go`
 - [x] T014 Add basic error handling for missing columns or tables
 
 ---
@@ -43,7 +43,7 @@
 **Goal**: Ensure masking is deterministic based on PK and supports parallelism.
 
 - [x] T015 Implement MD5 seeding based on `table_name:pk_value` in `internal/generator/context.go`
-- [x] T016 Implement Worker Pool for parallel row processing in `internal/masker/engine.go`
+- [x] T016 Implement Worker Pool for parallel row processing in `internal/poof/engine.go`
 - [x] T017 Ensure `ORDER BY pk` is used in all selection queries in `internal/db/postgresql.go`
 - [x] T018 Verify thread-safety of generator registry and faker implementations
 
@@ -54,7 +54,7 @@
 **Goal**: Implement test fakers and E2E integration tests.
 
 - [x] T019 Implement dedicated test faker providers in `internal/generator/test_fakers.go`
-- [x] T020 Setup E2E test suite using `testcontainers-go` in `internal/masker/engine_test.go`
+- [x] T020 Setup E2E test suite using `testcontainers-go` in `internal/poof/engine_test.go`
 - [x] T021 Write E2E test cases for all generator types and safety behaviors
 - [x] T022 Add unit tests for HCL parsing and Registry registration (Covered by E2E)
 
@@ -67,4 +67,4 @@
 - [x] T023 Add documentation comments to all exported functions
 - [x] T024 Code cleanup and refactoring
 - [x] T025 Verify "fail hard" behavior (Addressed via HCL parsing)
-- [x] T026 Final build check with `go build ./cmd/dbmask`
+- [x] T026 Final build check with `go build ./cmd/poof`

@@ -5,7 +5,7 @@
 
 ## Summary
 
-This phase hardens the `dbmask` tool by abstracting the database layer behind an interface, enabling future support for other databases while isolating the current PostgreSQL implementation. It also enhances the safety features with a mandatory dry-run capability and a detailed planning output.
+This phase hardens the `poof` tool by abstracting the database layer behind an interface, enabling future support for other databases while isolating the current PostgreSQL implementation. It also enhances the safety features with a mandatory dry-run capability and a detailed planning output.
 
 ## Technical Context
 
@@ -44,10 +44,10 @@ internal/db/
   registry.go            # New: Backend registration and selection
   postgres/              # New: Isolated PostgreSQL package
     client.go            # Move from internal/db/postgresql.go
-internal/masker/
+internal/poof/
   engine.go              # Update: Depend on db.DB interface, add DryRun support
   plan.go                # New: Plan generation logic (estimates, diffs)
-cmd/dbmask/
+cmd/poof/
   apply.go               # Update: Mandatory safety checks, --dry-run flag
   plan.go                # Update: Detailed plan output
   doctor.go              # Update: DSN support and dry-run capability check

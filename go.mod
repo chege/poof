@@ -1,4 +1,4 @@
-module github.com/christopher/masker
+module github.com/christopher/poof
 
 go 1.25.7
 

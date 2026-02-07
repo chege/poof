@@ -1,4 +1,4 @@
-// Package db provides database abstractions and backend-agnostic interfaces for dbmask.
+// Package db provides database abstractions and backend-agnostic interfaces for poof.
 package db
 
 import (

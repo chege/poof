@@ -3,7 +3,7 @@
 **Feature Branch**: `005-data-producers`  
 **Created**: 2026-02-07  
 **Status**: Draft  
-**Input**: User description: "SRS: dbmask — Data Producers & Row Sources VERSION: 5.0"
+**Input**: User description: "SRS: poof — Data Producers & Row Sources VERSION: 5.0"
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -17,7 +17,7 @@ As a user, I want to mask an entire table using the default source configuration
 
 **Acceptance Scenarios**:
 
-1. **Given** a table `users` with PII, **When** I run `dbmask apply` with no `source` block, **Then** all rows in `users` are selected via `SELECT pk FROM users ORDER BY pk` and masked.
+1. **Given** a table `users` with PII, **When** I run `poof apply` with no `source` block, **Then** all rows in `users` are selected via `SELECT pk FROM users ORDER BY pk` and masked.
 
 ---
 
@@ -45,7 +45,7 @@ As an advanced user, I want to provide a custom SQL query to select exactly whic
 
 **Acceptance Scenarios**:
 
-1. **Given** a custom SELECT query that returns PKs, **When** I run `dbmask apply`, **Then** the engine uses those PKs to perform the masking.
+1. **Given** a custom SELECT query that returns PKs, **When** I run `poof apply`, **Then** the engine uses those PKs to perform the masking.
 2. **Given** a query without an `ORDER BY pk` clause, **When** validation runs, **Then** the tool refuses to proceed to ensure determinism.
 
 ---
@@ -85,4 +85,4 @@ As an advanced user, I want to provide a custom SQL query to select exactly whic
 - **SC-002**: Safety checks (allowlist, dry-run) remain fully functional for all producer types.
 - **SC-003**: Custom queries without `ORDER BY` are rejected with a clear error message.
 - **SC-004**: Adding a new producer in code requires zero changes to the engine's core masking logic.
-- **SC-005**: `dbmask plan` correctly estimates row counts for views and custom queries.
+- **SC-005**: `poof plan` correctly estimates row counts for views and custom queries.

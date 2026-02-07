@@ -1,6 +1,6 @@
-# dbmask
+# poof
 
-`dbmask` is a PostgreSQL data masking tool designed to be deterministic, parallel-safe, and declarative.
+`poof` is a PostgreSQL data masking tool designed to be deterministic, parallel-safe, and declarative.
 
 ## Features
 
@@ -22,7 +22,7 @@ This project uses `task` (Taskfile.dev) for common operations:
 
 ## Usage
 
-Create a `dbmask.hcl` file:
+Create a `poof.hcl` file:
 
 ```hcl
 allowlist = ["testdb"]
@@ -47,7 +47,7 @@ table "users" {
 Run the masking tool:
 
 ```bash
-./dbmask apply --db "postgres://user:pass@localhost:5432/testdb" --config dbmask.hcl
+./poof apply --db "postgres://user:pass@localhost:5432/testdb" --config poof.hcl
 ```
 
 ## Supported Generators

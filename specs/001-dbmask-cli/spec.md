@@ -1,9 +1,9 @@
-# Feature Specification: dbmask — PostgreSQL Data Masking CLI
+# Feature Specification: poof — PostgreSQL Data Masking CLI
 
-**Feature Branch**: `001-dbmask-cli`  
+**Feature Branch**: `001-poof-cli`  
 **Created**: 2026-02-07  
 **Status**: Draft  
-**Input**: User description: "SRS: dbmask — PostgreSQL Data Masking CLI (Go, HCL, Cobra) VERSION: 1.2"
+**Input**: User description: "SRS: poof — PostgreSQL Data Masking CLI (Go, HCL, Cobra) VERSION: 1.2"
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -17,8 +17,8 @@ As a Database Administrator, I want to mask sensitive production data (like PII)
 
 **Acceptance Scenarios**:
 
-1. **Given** a PostgreSQL database with a table `users` containing `email` and `full_name`, **When** I run `dbmask apply --config config.hcl`, **Then** the `email` and `full_name` columns are updated with fake data.
-2. **Given** a valid configuration, **When** I run `dbmask apply` without `--force` on a database not in the allowlist, **Then** the tool refuses to run for safety.
+1. **Given** a PostgreSQL database with a table `users` containing `email` and `full_name`, **When** I run `poof apply --config config.hcl`, **Then** the `email` and `full_name` columns are updated with fake data.
+2. **Given** a valid configuration, **When** I run `poof apply` without `--force` on a database not in the allowlist, **Then** the tool refuses to run for safety.
 
 ---
 
@@ -47,7 +47,7 @@ As a QA Engineer, I want to use special "test fakers" that return predictable va
 
 **Acceptance Scenarios**:
 
-1. **Given** a config using `faker { provider = "test_name" }`, **When** I run `dbmask apply`, **Then** the column is populated with predictable test values.
+1. **Given** a config using `faker { provider = "test_name" }`, **When** I run `poof apply`, **Then** the column is populated with predictable test values.
 
 ---
 

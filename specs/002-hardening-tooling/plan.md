@@ -48,7 +48,7 @@ internal/generator/
   all.go                 # Update: Register new faker providers
   faker.go               # Update: Implement new providers
   test_fakers.go         # Update: Add test fakers for new providers
-internal/masker/
+internal/poof/
   engine.go              # Update: Harden error paths and validation
 ```
 

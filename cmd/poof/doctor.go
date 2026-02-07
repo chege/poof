@@ -1,14 +1,14 @@
-// Package main provides the CLI entry point for dbmask.
+// Package main provides the CLI entry point for poof.
 package main
 
 import (
 	"context"
 	"os"
 
-	"github.com/christopher/masker/internal/config"
-	_ "github.com/christopher/masker/internal/db/postgres"
-	"github.com/christopher/masker/internal/masker"
-	"github.com/christopher/masker/internal/ui"
+	"github.com/christopher/poof/internal/config"
+	_ "github.com/christopher/poof/internal/db/postgres"
+	"github.com/christopher/poof/internal/engine"
+	"github.com/christopher/poof/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +35,7 @@ var doctorCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		if !masker.CheckReadiness(ctx, configPath, dsn) {
+		if !engine.CheckReadiness(ctx, configPath, dsn) {
 			ui.Error("Doctor found issues. Please fix them before running apply.")
 			os.Exit(1)
 		}

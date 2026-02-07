@@ -15,7 +15,7 @@
 3. **Taskfile Orchestration**:
    - The `Taskfile.yml` will be the single source of truth for all workflows.
    - `task check` will be a prerequisite for all commits.
-   - `init`, `plan`, `apply` will map to `./dbmask` commands with standard flags to ensure consistency.
+   - `init`, `plan`, `apply` will map to `./poof` commands with standard flags to ensure consistency.
 
 4. **Error Hardening**:
    - Wrap all `pgx` and `hcl` errors with context-specific messages (e.g., `"failed to update column %s in table %s: %w"`).

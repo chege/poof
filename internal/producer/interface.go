@@ -3,7 +3,7 @@ package producer
 
 import (
 	"context"
-	"github.com/christopher/masker/internal/db"
+	"github.com/christopher/poof/internal/db"
 )
 
 // Producer is the interface for identifying which rows should be masked.

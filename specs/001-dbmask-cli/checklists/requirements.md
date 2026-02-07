@@ -1,8 +1,8 @@
-# Specification Quality Checklist: dbmask-cli
+# Specification Quality Checklist: poof-cli
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-02-07
-**Feature**: [specs/001-dbmask-cli/spec.md](spec.md)
+**Feature**: [specs/001-poof-cli/spec.md](spec.md)
 
 ## Content Quality
 

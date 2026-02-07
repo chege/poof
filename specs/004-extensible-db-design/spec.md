@@ -3,7 +3,7 @@
 **Feature Branch**: `004-extensible-db-design`  
 **Created**: 2026-02-07  
 **Status**: Draft  
-**Input**: User description: "SRS: dbmask — Release Readiness, Safety & Extensible Database Design VERSION: 3.2"
+**Input**: User description: "SRS: poof — Release Readiness, Safety & Extensible Database Design VERSION: 3.2"
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -13,12 +13,12 @@ As a Database Administrator, I want to perform in-place masking on a database wi
 
 **Why this priority**: Inline mutation is irreversible. Safety is the highest priority to prevent data loss or unauthorized masking.
 
-**Independent Test**: Can be tested by attempting to run `dbmask apply` on a database not in the allowlist (should refuse) and by running with `--dry-run` (should perform all logic but commit no changes).
+**Independent Test**: Can be tested by attempting to run `poof apply` on a database not in the allowlist (should refuse) and by running with `--dry-run` (should perform all logic but commit no changes).
 
 **Acceptance Scenarios**:
 
-1. **Given** a database name not in the `allowlist`, **When** I run `dbmask apply`, **Then** the tool refuses to proceed and exits with an error.
-2. **Given** a valid configuration, **When** I run `dbmask apply --dry-run`, **Then** the tool connects, fetches data, computes masks, but performs zero writes to the database.
+1. **Given** a database name not in the `allowlist`, **When** I run `poof apply`, **Then** the tool refuses to proceed and exits with an error.
+2. **Given** a valid configuration, **When** I run `poof apply --dry-run`, **Then** the tool connects, fetches data, computes masks, but performs zero writes to the database.
 
 ---
 
@@ -28,12 +28,12 @@ As a Developer, I want to see a detailed summary of affected tables, columns, an
 
 **Why this priority**: Build trust and allow human verification of the masking logic before it is applied to the data.
 
-**Independent Test**: Run `dbmask plan` and verify the output contains table names, estimated row counts, generator types, and a limited before/after sample.
+**Independent Test**: Run `poof plan` and verify the output contains table names, estimated row counts, generator types, and a limited before/after sample.
 
 **Acceptance Scenarios**:
 
-1. **Given** a valid configuration, **When** I run `dbmask plan`, **Then** I see a summary listing each table, its estimated row count, and the generator being used for each masked column.
-2. **Given** sample data, **When** I run `dbmask plan`, **Then** I see a limited number of rows (e.g., 5) showing the current value and the generated masked value for verification.
+1. **Given** a valid configuration, **When** I run `poof plan`, **Then** I see a summary listing each table, its estimated row count, and the generator being used for each masked column.
+2. **Given** sample data, **When** I run `poof plan`, **Then** I see a limited number of rows (e.g., 5) showing the current value and the generated masked value for verification.
 
 ---
 
@@ -43,11 +43,11 @@ As a Software Engineer, I want the database interaction logic to be abstracted b
 
 **Why this priority**: Ensures long-term maintainability and architectural cleaness. Isolates SQL dialect specific logic.
 
-**Independent Test**: Verify that the core engine code (`internal/masker`) depends only on interfaces defined in `internal/db` and that PostgreSQL-specific code is isolated in its own package.
+**Independent Test**: Verify that the core engine code (`internal/poof`) depends only on interfaces defined in `internal/db` and that PostgreSQL-specific code is isolated in its own package.
 
 **Acceptance Scenarios**:
 
-1. **Given** the codebase, **When** I inspect `internal/masker/engine.go`, **Then** I see no direct references to `pgx` or PostgreSQL-specific types.
+1. **Given** the codebase, **When** I inspect `internal/poof/engine.go`, **Then** I see no direct references to `pgx` or PostgreSQL-specific types.
 2. **Given** a new database implementation that fulfills the `Database` interface, **When** registered, **Then** it can be used by the engine without modifications to the engine's core logic.
 
 ---
@@ -65,10 +65,10 @@ As a Software Engineer, I want the database interaction logic to be abstracted b
 - **FR-001**: Introduce a minimal database interface (`internal/db/interface.go`) covering schema introspection, row selection (ordered by PK), prepared updates, and transaction handling.
 - **FR-002**: Isolate PostgreSQL implementation in `internal/db/postgres`.
 - **FR-003**: The core engine MUST depend on the database interface, not concrete implementations.
-- **FR-004**: `dbmask apply --dry-run` MUST perform all masking logic (fetch, generate) but execute zero updates/commits.
-- **FR-005**: `dbmask plan` MUST display affected tables, columns, estimated row counts, and generator types.
-- **FR-006**: `dbmask plan` MUST show a limited (max 5 rows) before → after diff preview.
-- **FR-007**: `dbmask doctor` MUST verify DSN support, connectivity, and dry-run capability.
+- **FR-004**: `poof apply --dry-run` MUST perform all masking logic (fetch, generate) but execute zero updates/commits.
+- **FR-005**: `poof plan` MUST display affected tables, columns, estimated row counts, and generator types.
+- **FR-006**: `poof plan` MUST show a limited (max 5 rows) before → after diff preview.
+- **FR-007**: `poof doctor` MUST verify DSN support, connectivity, and dry-run capability.
 - **FR-008**: Database backend selection MUST be implicit via DSN parsing.
 
 ### Key Entities
@@ -81,7 +81,7 @@ As a Software Engineer, I want the database interaction logic to be abstracted b
 
 ### Measurable Outcomes
 
-- **SC-001**: `dbmask apply --dry-run` results in zero `UPDATE` statements being executed on the database server.
-- **SC-002**: Core engine logic (`internal/masker`) remains unchanged when a new database backend is added (only wiring/registration changes).
-- **SC-003**: `dbmask plan` completes in under 5 seconds for a schema with 10 tables (excluding data fetching).
-- **SC-004**: `dbmask doctor` correctly identifies and flags unsupported connection strings.
+- **SC-001**: `poof apply --dry-run` results in zero `UPDATE` statements being executed on the database server.
+- **SC-002**: Core engine logic (`internal/poof`) remains unchanged when a new database backend is added (only wiring/registration changes).
+- **SC-003**: `poof plan` completes in under 5 seconds for a schema with 10 tables (excluding data fetching).
+- **SC-004**: `poof doctor` correctly identifies and flags unsupported connection strings.

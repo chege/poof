@@ -1,4 +1,4 @@
-// Package config handles the loading, validation, and representation of the dbmask TOML configuration.
+// Package config handles the loading, validation, and representation of the poof TOML configuration.
 package config
 
 import (

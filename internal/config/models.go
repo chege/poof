@@ -1,7 +1,7 @@
-// Package config defines the data models for dbmask configuration.
+// Package config defines the data models for poof configuration.
 package config
 
-// Config represents the top-level dbmask configuration structure.
+// Config represents the top-level poof configuration structure.
 type Config struct {
 	Database Database `toml:"database" validate:"required"`
 	Safety   Safety   `toml:"safety" validate:"required"`

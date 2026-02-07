@@ -1,4 +1,4 @@
-// Package main provides the CLI entry point for dbmask.
+// Package main provides the CLI entry point for poof.
 package main
 
 import (
@@ -6,12 +6,12 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/christopher/masker/internal/config"
-	"github.com/christopher/masker/internal/db"
-	_ "github.com/christopher/masker/internal/db/postgres" // Register Postgres backend
-	"github.com/christopher/masker/internal/generator"
-	"github.com/christopher/masker/internal/masker"
-	"github.com/christopher/masker/internal/ui"
+	"github.com/christopher/poof/internal/config"
+	"github.com/christopher/poof/internal/db"
+	_ "github.com/christopher/poof/internal/db/postgres" // Register Postgres backend
+	"github.com/christopher/poof/internal/engine"
+	"github.com/christopher/poof/internal/generator"
+	"github.com/christopher/poof/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -65,7 +65,7 @@ var applyCmd = &cobra.Command{
 
 		if !yes && !dryRun {
 			ui.Info("Running plan before apply...")
-			preEngine := masker.NewEngine(client, cfg, workers)
+			preEngine := engine.NewEngine(client, cfg, workers)
 			preEngine.DryRun = true
 			_, err = preEngine.Apply(ctx)
 			if err != nil {
@@ -81,7 +81,7 @@ var applyCmd = &cobra.Command{
 			ui.Info("Applying masking...")
 		}
 
-		engine := masker.NewEngine(client, cfg, workers)
+		engine := engine.NewEngine(client, cfg, workers)
 		engine.DryRun = dryRun
 		_, err = engine.Apply(ctx)
 		if err != nil {

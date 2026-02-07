@@ -40,7 +40,7 @@ specs/003-comfortable-cli/
 ### Source Code Changes
 
 ```text
-cmd/dbmask/
+cmd/poof/
   root.go                # Update: Global flags (--no-color)
   init.go                # New: Template generation
   validate.go            # New: Config validation
@@ -52,7 +52,7 @@ internal/
     output.go            # New: Symbols, colors, and TTY logic
   config/
     template.go          # New: HCL template content
-  masker/
+  poof/
     engine.go            # Update: Add DryRun mode for plan
 ```
 

@@ -1,10 +1,10 @@
-// Package postgres provides the PostgreSQL backend implementation for dbmask.
+// Package postgres provides the PostgreSQL backend implementation for poof.
 package postgres
 
 import (
 	"context"
 
-	"github.com/christopher/masker/internal/db"
+	"github.com/christopher/poof/internal/db"
 )
 
 // init registers the PostgreSQL backend with the database registry.

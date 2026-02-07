@@ -2,14 +2,14 @@ version: '3'
 
 tasks:
   build:
-    desc: Build the dbmask binary
+    desc: Build the poof binary
     cmds:
-      - go build -v -o dbmask ./cmd/dbmask
+      - go build -v -o poof ./cmd/poof
 
   clean:
-    desc: Remove the dbmask binary and test artifacts
+    desc: Remove the poof binary and test artifacts
     cmds:
-      - rm -f dbmask
+      - rm -f poof
 
   rebuild:
     desc: Clean and rebuild the binary
@@ -42,14 +42,14 @@ tasks:
   doctor:
     desc: Run environment readiness check
     cmds:
-      - ./dbmask doctor --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "dbmask.hcl"}}"
+      - ./poof doctor --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "poof.hcl"}}"
     vars:
       DB_URL: '{{.DB_URL | default "postgres://user:pass@localhost:5432/testdb"}}'
 
   validate:
     desc: Validate the configuration file
     cmds:
-      - ./dbmask validate --config "{{.CONFIG_PATH | default "dbmask.hcl"}}"
+      - ./poof validate --config "{{.CONFIG_PATH | default "poof.hcl"}}"
 
   verify:
     desc: Verify environment and configuration (doctor + validate)
@@ -60,19 +60,19 @@ tasks:
   init:
     desc: Initialize the project
     cmds:
-      - ./dbmask init --explain
+      - ./poof init --explain
 
   plan:
     desc: Show masking plan
     cmds:
-      - ./dbmask plan --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "dbmask.hcl"}}"
+      - ./poof plan --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "poof.hcl"}}"
     vars:
       DB_URL: '{{.DB_URL | default "postgres://user:pass@localhost:5432/testdb"}}'
 
   apply:
     desc: Apply masking rules
     cmds:
-      - ./dbmask apply --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "dbmask.hcl"}}" --yes
+      - ./poof apply --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "poof.hcl"}}" --yes
     vars:
       DB_URL: '{{.DB_URL | default "postgres://user:pass@localhost:5432/testdb"}}'
 

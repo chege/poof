@@ -1,11 +1,11 @@
-// Package main provides the CLI entry point for dbmask.
+// Package main provides the CLI entry point for poof.
 package main
 
 import (
 	"log/slog"
 	"os"
 
-	"github.com/christopher/masker/internal/ui"
+	"github.com/christopher/poof/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -15,8 +15,8 @@ var dbConnStr string
 var workers int
 
 var rootCmd = &cobra.Command{
-	Use:   "dbmask",
-	Short: "dbmask is a PostgreSQL data masking tool",
+	Use:   "poof",
+	Short: "poof is a PostgreSQL data masking tool",
 	Long:  "A declarative, deterministic, and parallel-safe data masking tool for PostgreSQL.",
 	PersistentPreRun: func(_ *cobra.Command, _ []string) {
 		ui.Init(noColor)
@@ -38,7 +38,7 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&noColor, "no-color", false, "Disable color output")
-	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "dbmask.toml", "Path to TOML config file")
+	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "poof.toml", "Path to TOML config file")
 	rootCmd.PersistentFlags().StringVarP(&dbConnStr, "db", "d", "", "PostgreSQL connection string (overrides config)")
 	rootCmd.PersistentFlags().IntVarP(&workers, "workers", "w", 4, "Number of parallel workers")
 }

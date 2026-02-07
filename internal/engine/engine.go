@@ -1,14 +1,14 @@
-// Package masker coordinates the data masking process.
-package masker
+// Package engine coordinates the data masking process.
+package engine
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/christopher/masker/internal/config"
-	"github.com/christopher/masker/internal/db"
-	"github.com/christopher/masker/internal/generator"
-	"github.com/christopher/masker/internal/producer"
+	"github.com/christopher/poof/internal/config"
+	"github.com/christopher/poof/internal/db"
+	"github.com/christopher/poof/internal/generator"
+	"github.com/christopher/poof/internal/producer"
 	"github.com/schollz/progressbar/v3"
 	"golang.org/x/sync/errgroup"
 )
