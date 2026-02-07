@@ -10,7 +10,7 @@ type Rows interface {
 	Values() ([]any, error)
 	Scan(dest ...any) error
 	Err() error
-	Close()
+	Close() error
 }
 
 // Tx abstracts database transactions.

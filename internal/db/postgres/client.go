@@ -93,6 +93,11 @@ func (w *rowsWrapper) Err() error {
 	return w.Rows.Err()
 }
 
+func (w *rowsWrapper) Close() error {
+	w.Rows.Close()
+	return nil
+}
+
 type txWrapper struct {
 	pgx.Tx
 }

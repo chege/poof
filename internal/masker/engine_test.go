@@ -34,7 +34,9 @@ func TestE2E(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer pgContainer.Terminate(ctx)
+	defer func() {
+		_ = pgContainer.Terminate(ctx)
+	}()
 
 	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
 	if err != nil {
@@ -99,12 +101,15 @@ func TestE2E(t *testing.T) {
 	// 4. Verify
 	rows, err := client.FetchRows(ctx, "users", "id", []string{"name", "email"}, 0)
 	assert.NoError(t, err)
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	for rows.Next() {
 		var id int
 		var name, email string
-		rows.Scan(&id, &name, &email)
+		err = rows.Scan(&id, &name, &email)
+		assert.NoError(t, err)
 		if diff := cmp.Diff("Test User", name); diff != "" {
 			t.Errorf("name mismatch (-want +got):\n%s", diff)
 		}
@@ -112,6 +117,7 @@ func TestE2E(t *testing.T) {
 			t.Errorf("email mismatch (-want +got):\n%s", diff)
 		}
 	}
+	assert.NoError(t, rows.Err())
 }
 
 func TestE2E_DryRun(t *testing.T) {
@@ -126,7 +132,9 @@ func TestE2E_DryRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer pgContainer.Terminate(ctx)
+	defer func() {
+		_ = pgContainer.Terminate(ctx)
+	}()
 	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
 	if err != nil {
 		t.Fatal(err)
@@ -165,12 +173,16 @@ func TestE2E_DryRun(t *testing.T) {
 	// Verify DB is UNCHANGED
 	rows, err := client.FetchRows(ctx, "users", "id", []string{"name"}, 0)
 	assert.NoError(t, err)
-	defer rows.Close()
-	rows.Next()
+	defer func() {
+		_ = rows.Close()
+	}()
+	assert.True(t, rows.Next())
 	var id int
 	var name string
-	rows.Scan(&id, &name)
+	err = rows.Scan(&id, &name)
+	assert.NoError(t, err)
 	assert.Equal(t, "Real Name", name, "Database should be unchanged in dry-run")
+	assert.NoError(t, rows.Err())
 }
 
 func TestE2E_QueryProducer(t *testing.T) {
@@ -185,7 +197,9 @@ func TestE2E_QueryProducer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer pgContainer.Terminate(ctx)
+	defer func() {
+		_ = pgContainer.Terminate(ctx)
+	}()
 	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
 	if err != nil {
 		t.Fatal(err)
@@ -229,15 +243,19 @@ func TestE2E_QueryProducer(t *testing.T) {
 
 	rows1, err := client.Query(ctx, "SELECT name FROM users WHERE id = 1")
 	assert.NoError(t, err)
-	rows1.Next()
-	rows1.Scan(&name1)
-	rows1.Close()
+	assert.True(t, rows1.Next())
+	err = rows1.Scan(&name1)
+	assert.NoError(t, err)
+	err = rows1.Close()
+	assert.NoError(t, err)
 
 	rows2, err := client.Query(ctx, "SELECT name FROM users WHERE id = 2")
 	assert.NoError(t, err)
-	rows2.Next()
-	rows2.Scan(&name2)
-	rows2.Close()
+	assert.True(t, rows2.Next())
+	err = rows2.Scan(&name2)
+	assert.NoError(t, err)
+	err = rows2.Close()
+	assert.NoError(t, err)
 
 	assert.Equal(t, "Masked", name1)
 	assert.Equal(t, "Real 2", name2)
@@ -255,7 +273,9 @@ func TestDeterminism(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer pgContainer.Terminate(ctx)
+	defer func() {
+		_ = pgContainer.Terminate(ctx)
+	}()
 	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
 	if err != nil {
 		t.Fatal(err)
@@ -295,10 +315,13 @@ func TestDeterminism(t *testing.T) {
 	for rows1.Next() {
 		var id int
 		var name string
-		rows1.Scan(&id, &name)
+		err = rows1.Scan(&id, &name)
+		assert.NoError(t, err)
 		results1[id] = name
 	}
-	rows1.Close()
+	assert.NoError(t, rows1.Err())
+	err = rows1.Close()
+	assert.NoError(t, err)
 
 	// Reset and run with 4 workers
 	tx, err = client.Begin(ctx)
@@ -316,10 +339,13 @@ func TestDeterminism(t *testing.T) {
 	for rows4.Next() {
 		var id int
 		var name string
-		rows4.Scan(&id, &name)
+		err = rows4.Scan(&id, &name)
+		assert.NoError(t, err)
 		if diff := cmp.Diff(results1[id], name); diff != "" {
 			t.Errorf("determinism mismatch for ID %d (-want +got):\n%s", id, diff)
 		}
 	}
-	rows4.Close()
+	assert.NoError(t, rows4.Err())
+	err = rows4.Close()
+	assert.NoError(t, err)
 }

@@ -82,7 +82,7 @@ func (e *Engine) Apply(ctx context.Context) (*MaskingReport, error) {
 
 		diffs, err := e.maskTable(ctx, tableCfg, p)
 		if err != nil {
-			return nil, err // maskTable already wraps with context
+			return nil, err
 		}
 		report.Diffs = append(report.Diffs, diffs...)
 	}
@@ -111,7 +111,9 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch rows: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var tx db.Tx
 	var updateQuery string
