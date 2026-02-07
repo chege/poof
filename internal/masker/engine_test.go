@@ -87,7 +87,7 @@ func TestE2E(t *testing.T) {
 	}
 
 	engine := NewEngine(client, cfg, 2)
-	err = engine.Apply(ctx)
+	_, err = engine.Apply(ctx)
 	assert.NoError(t, err)
 
 	// 4. Verify
@@ -143,7 +143,7 @@ func TestE2E_NewProviders(t *testing.T) {
 	}
 
 	engine := NewEngine(client, cfg, 1)
-	err := engine.Apply(ctx)
+	_, err := engine.Apply(ctx)
 	assert.NoError(t, err)
 
 	var username, company, phone, ip, bio string

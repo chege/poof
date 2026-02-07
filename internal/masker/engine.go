@@ -15,6 +15,15 @@ type Engine struct {
 	DB      *db.Client
 	Config  *config.Config
 	Workers int
+	DryRun  bool
+}
+
+type Diff struct {
+	TableName  string
+	ColumnName string
+	PKValue    any
+	OldValue   any
+	NewValue   any
 }
 
 func NewEngine(client *db.Client, cfg *config.Config, workers int) *Engine {
@@ -29,21 +38,27 @@ func NewEngine(client *db.Client, cfg *config.Config, workers int) *Engine {
 }
 
 type rowData struct {
-	pkValue any
-	values  []any
+	pkValue   any
+	oldValues []any
+	newValues []any
 }
 
-func (e *Engine) Apply(ctx context.Context) error {
+func (e *Engine) Apply(ctx context.Context) ([]Diff, error) {
+	var allDiffs []Diff
 	for _, tableCfg := range e.Config.Tables {
-		if err := e.maskTable(ctx, tableCfg); err != nil {
-			return fmt.Errorf("failed to mask table %s: %w", tableCfg.Name, err)
+		diffs, err := e.maskTable(ctx, tableCfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to mask table %s: %w", tableCfg.Name, err)
 		}
+		allDiffs = append(allDiffs, diffs...)
 	}
-	return nil
+	return allDiffs, nil
 }
 
-func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table) error {
-	log.Printf("Masking table %s with %d workers...", tableCfg.Name, e.Workers)
+func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table) ([]Diff, error) {
+	if !e.DryRun {
+		log.Printf("Masking table %s with %d workers...", tableCfg.Name, e.Workers)
+	}
 
 	columnNames := make([]string, 0, len(tableCfg.Columns))
 	generators := make(map[string]generator.Generator)
@@ -52,31 +67,36 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table) error {
 		columnNames = append(columnNames, col.Name)
 		gen, err := generator.NewGenerator(col.Gen)
 		if err != nil {
-			return fmt.Errorf("failed to create generator for column %s: %w", col.Name, err)
+			return nil, fmt.Errorf("failed to create generator for column %s: %w", col.Name, err)
 		}
 		generators[col.Name] = gen
 	}
 
 	rows, err := e.DB.FetchRows(ctx, tableCfg.Name, tableCfg.PK, columnNames)
 	if err != nil {
-		return fmt.Errorf("failed to fetch rows: %w", err)
+		return nil, fmt.Errorf("failed to fetch rows: %w", err)
 	}
 	defer rows.Close()
 
-	tx, err := e.DB.Pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to start transaction: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	updateQuery := fmt.Sprintf("UPDATE %s SET ", tableCfg.Name)
-	for i, col := range columnNames {
-		if i > 0 {
-			updateQuery += ", "
+	var tx db.Tx
+	var updateQuery string
+	if !e.DryRun {
+		var err error
+		tx, err = e.DB.Pool.Begin(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to start transaction: %w", err)
 		}
-		updateQuery += fmt.Sprintf("%s = $%d", col, i+2)
+		defer tx.Rollback(ctx)
+
+		updateQuery = fmt.Sprintf("UPDATE %s SET ", tableCfg.Name)
+		for i, col := range columnNames {
+			if i > 0 {
+				updateQuery += ", "
+			}
+			updateQuery += fmt.Sprintf("%s = $%d", col, i+2)
+		}
+		updateQuery += fmt.Sprintf(" WHERE %s = $1", tableCfg.PK)
 	}
-	updateQuery += fmt.Sprintf(" WHERE %s = $1", tableCfg.PK)
 
 	inputChan := make(chan rowData, e.Workers*2)
 	outputChan := make(chan rowData, e.Workers*2)
@@ -102,7 +122,7 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table) error {
 					}
 					newValues[j] = val
 				}
-				row.values = newValues
+				row.newValues = newValues
 				outputChan <- row
 			}
 		}()
@@ -116,7 +136,11 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table) error {
 	// Reader goroutine
 	go func() {
 		defer close(inputChan)
+		count := 0
 		for rows.Next() {
+			if e.DryRun && count >= 5 {
+				break
+			}
 			values, err := rows.Values()
 			if err != nil {
 				select {
@@ -125,24 +149,41 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table) error {
 				}
 				return
 			}
-			inputChan <- rowData{pkValue: values[0]}
+			inputChan <- rowData{pkValue: values[0], oldValues: values[1:]}
+			count++
 		}
 	}()
 
-	// Writer loop
+	var diffs []Diff
+	// Writer/Collector loop
 	for row := range outputChan {
 		select {
 		case err := <-errChan:
-			return err
+			return nil, err
 		default:
 		}
 
-		args := append([]any{row.pkValue}, row.values...)
-		_, err = tx.Exec(ctx, updateQuery, args...)
-		if err != nil {
-			return fmt.Errorf("failed to update row: %w", err)
+		if e.DryRun {
+			for i, colName := range columnNames {
+				diffs = append(diffs, Diff{
+					TableName:  tableCfg.Name,
+					ColumnName: colName,
+					PKValue:    row.pkValue,
+					OldValue:   row.oldValues[i],
+					NewValue:   row.newValues[i],
+				})
+			}
+		} else {
+			args := append([]any{row.pkValue}, row.newValues...)
+			_, err = tx.Exec(ctx, updateQuery, args...)
+			if err != nil {
+				return nil, fmt.Errorf("failed to update row: %w", err)
+			}
 		}
 	}
 
-	return tx.Commit(ctx)
+	if !e.DryRun {
+		return nil, tx.Commit(ctx)
+	}
+	return diffs, nil
 }

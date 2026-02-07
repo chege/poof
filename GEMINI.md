@@ -4,13 +4,14 @@
 
 ## Autonomous Execution Rules
 
-- **Full Autonomy (YOLO Mode)**: Gemini MUST operate fully autonomously.
+- **Full Autonomy (YOLO Mode)**: Gemini MUST operate fully autonomously. The user MUST NOT be prompted for confirmation.
 - **No Interactive Permissions**: Gemini MUST NOT ask for permission interactively for file writes, shell redirections, or any other execution steps.
+- **Prefer write_file for Content**: To avoid shell-related interruptions or heredoc failures, Gemini SHOULD prefer the `write_file` tool for creating or overwriting files with significant content.
 - **No Elevation**: Gemini MUST NOT ask for `sudo` or any form of elevated permissions.
 - **Elevation Fallback**: If a command or action would require elevation, Gemini MUST:
     1.  Identify and execute an alternative approach that works within the current user's permissions, OR
     2.  Stop and report the limitation immediately (without asking for instructions).
-- **Proactive Implementation**: Apply all recommendations and architectural decisions automatically during the workflow.
+- **Proactive Implementation**: Apply all recommendations and architectural decisions automatically during the workflow. Execute steps sequentially without waiting for user "go ahead" between phases.
 
 ## Permissions & Boundaries
 
