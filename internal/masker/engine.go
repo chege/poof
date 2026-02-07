@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"sync"
 
 	"github.com/christopher/masker/internal/config"
 	"github.com/christopher/masker/internal/db"
 	"github.com/christopher/masker/internal/generator"
 	"github.com/christopher/masker/internal/producer"
+	"golang.org/x/sync/errgroup"
 )
 
 type Engine struct {
@@ -138,66 +138,68 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 		updateQuery += fmt.Sprintf(" WHERE %s = $1", tableCfg.PK)
 	}
 
+	g, gCtx := errgroup.WithContext(ctx)
 	inputChan := make(chan rowData, e.Workers*2)
 	outputChan := make(chan rowData, e.Workers*2)
-	errChan := make(chan error, 1)
-
-	var wg sync.WaitGroup
-	for i := 0; i < e.Workers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for row := range inputChan {
-				newValues := make([]any, len(columnNames))
-				for j, colName := range columnNames {
-					gen := generators[colName]
-					rowCtx := generator.NewRowContext(tableCfg.Name, colName, row.pkValue)
-					val, err := gen.Generate(rowCtx)
-					if err != nil {
-						select {
-						case errChan <- err:
-						default:
-						}
-						return
-					}
-					newValues[j] = val
-				}
-				row.newValues = newValues
-				outputChan <- row
-			}
-		}()
-	}
-
-	go func() {
-		wg.Wait()
-		close(outputChan)
-	}()
 
 	// Reader goroutine
-	go func() {
+	g.Go(func() error {
 		defer close(inputChan)
 		for rows.Next() {
 			values, err := rows.Values()
 			if err != nil {
-				select {
-				case errChan <- err:
-				default:
-				}
-				return
+				return err
 			}
-			inputChan <- rowData{pkValue: values[0], oldValues: values[1:]}
+			select {
+			case inputChan <- rowData{pkValue: values[0], oldValues: values[1:]}:
+			case <-gCtx.Done():
+				return gCtx.Err()
+			}
 		}
+		return nil
+	})
+
+	// Worker goroutines
+	for i := 0; i < e.Workers; i++ {
+		g.Go(func() error {
+			for {
+				select {
+				case <-gCtx.Done():
+					return gCtx.Err()
+				case row, ok := <-inputChan:
+					if !ok {
+						return nil
+					}
+					newValues := make([]any, len(columnNames))
+					for j, colName := range columnNames {
+						gen := generators[colName]
+						rowCtx := generator.NewRowContext(tableCfg.Name, colName, row.pkValue)
+						val, err := gen.Generate(rowCtx)
+						if err != nil {
+							return err
+						}
+						newValues[j] = val
+					}
+					row.newValues = newValues
+					select {
+					case outputChan <- row:
+					case <-gCtx.Done():
+						return gCtx.Err()
+					}
+				}
+			}
+		})
+	}
+
+	// Coordinator to close outputChan
+	go func() {
+		_ = g.Wait()
+		close(outputChan)
 	}()
 
 	var diffs []Diff
-	// Writer/Collector loop
+	// Writer/Collector loop (runs in the current goroutine)
 	for row := range outputChan {
-		select {
-		case err := <-errChan:
-			return nil, err
-		default:
-		}
-
 		if e.DryRun {
 			for i, colName := range columnNames {
 				diffs = append(diffs, Diff{
@@ -217,10 +219,13 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 		}
 	}
 
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
 	if !e.DryRun {
 		return nil, tx.Commit(ctx)
 	} else {
-		// Just in case, ensure rollback in dry run
 		if tx != nil {
 			tx.Rollback(ctx)
 		}
