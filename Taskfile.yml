@@ -22,6 +22,18 @@ tasks:
     cmds:
       - go test -v ./...
 
+  cover:
+    desc: Run tests with coverage and show summary
+    cmds:
+      - go test -coverprofile=coverage.out ./...
+      - go tool cover -func=coverage.out
+
+  cover-html:
+    desc: Run tests with coverage and show HTML report
+    cmds:
+      - go test -coverprofile=coverage.out ./...
+      - go tool cover -html=coverage.out
+
   tidy:
     desc: Tidy go modules
     cmds:

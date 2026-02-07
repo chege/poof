@@ -71,6 +71,8 @@ The project follows a standard Go project layout:
 Gemini MUST prefer using `task` (Taskfile.dev) for all development and verification steps.
 
 - **`task ready`**: (Preferred) Run `tidy` -> `lint` -> `test`. Use this as the standard quality gate.
+- **`task cover`**: Run tests and show code coverage summary.
+- **`task cover-html`**: Run tests and generate interactive HTML coverage report.
 - **`task verify`**: Run `doctor` and `validate`. Use this to check environment and config health.
 - **`task lint`**: Run `golangci-lint` for comprehensive code analysis.
 - **`task all`**: Run the full `ready` suite and then `build`.
