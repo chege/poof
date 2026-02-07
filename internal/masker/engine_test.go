@@ -9,6 +9,7 @@ import (
 	"github.com/christopher/masker/internal/db"
 	_ "github.com/christopher/masker/internal/db/postgres"
 	"github.com/christopher/masker/internal/generator"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -100,8 +101,12 @@ func TestE2E(t *testing.T) {
 		var id int
 		var name, email string
 		rows.Scan(&id, &name, &email)
-		assert.Equal(t, "Test User", name)
-		assert.Equal(t, "test@example.com", email)
+		if diff := cmp.Diff("Test User", name); diff != "" {
+			t.Errorf("name mismatch (-want +got):\n%s", diff)
+		}
+		if diff := cmp.Diff("test@example.com", email); diff != "" {
+			t.Errorf("email mismatch (-want +got):\n%s", diff)
+		}
 	}
 }
 
@@ -262,7 +267,9 @@ func TestDeterminism(t *testing.T) {
 		var id int
 		var name string
 		rows4.Scan(&id, &name)
-		assert.Equal(t, results1[id], name, "Output should be deterministic regardless of workers")
+		if diff := cmp.Diff(results1[id], name); diff != "" {
+			t.Errorf("determinism mismatch for ID %d (-want +got):\n%s", id, diff)
+		}
 	}
 	rows4.Close()
 }
