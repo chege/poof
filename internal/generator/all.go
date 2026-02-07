@@ -36,6 +36,14 @@ func RegisterAll() {
 			return NewTemplateGenerator(gen.Template)
 		})
 
+		RegisterGenerator("hash", func(_ config.Gen) (Generator, error) {
+			return NewHashGenerator(), nil
+		})
+
+		RegisterGenerator("counter", func(_ config.Gen) (Generator, error) {
+			return NewCounterGenerator(), nil
+		})
+
 		// Register Faker Providers
 		RegisterFakerProvider("first_name", func(r *rand.Rand) any {
 			names := []string{"John", "Jane", "Alice", "Bob", "Charlie", "Diana"}

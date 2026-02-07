@@ -21,9 +21,19 @@ type Tx interface {
 	Rollback(ctx context.Context) error
 }
 
+// ColumnInfo represents metadata about a database column.
+type ColumnInfo struct {
+	Name       string
+	DataType   string
+	IsNullable bool
+	HasUnique  bool
+}
+
 // DB defines the minimal interface for a database backend.
 type DB interface {
 	GetDatabaseName(ctx context.Context) (string, error)
+	GetTableColumns(ctx context.Context, tableName string) ([]ColumnInfo, error)
+	GetAllTables(ctx context.Context) ([]string, error)
 	EstimateRowCount(ctx context.Context, tableName string) (int64, error)
 	FetchRows(ctx context.Context, tableName string, pkColumn string, columns []string, limit int) (Rows, error)
 	Query(ctx context.Context, sql string, args ...any) (Rows, error)

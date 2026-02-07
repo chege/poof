@@ -3,8 +3,10 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgconn"
 	"github.com/schollz/progressbar/v3"
 	"golang.org/x/sync/errgroup"
 
@@ -16,17 +18,21 @@ import (
 
 // Engine orchestrates the data masking process across multiple tables and workers.
 type Engine struct {
-	DB      db.DB
-	Config  *config.Config
-	Workers int
-	DryRun  bool
+	DB       db.DB
+	Config   *config.Config
+	Workers  int
+	DryRun   bool
+	PlanOnly bool
 }
 
-// TableReport provides a summary of masking intended for a specific table.
+// TableReport provides a summary of masking results for a specific table.
 type TableReport struct {
 	Name      string
 	Columns   []string
 	Estimates int64
+	Updated   int64
+	Retried   int64
+	Failed    int64
 }
 
 // MaskingReport provides a comprehensive summary of masking operations.
@@ -82,22 +88,33 @@ func (e *Engine) Apply(ctx context.Context) (*MaskingReport, error) {
 			cols[i] = c.Name
 		}
 
-		report.Tables = append(report.Tables, TableReport{
+		tr := TableReport{
 			Name:      tableCfg.Name,
 			Estimates: count,
 			Columns:   cols,
-		})
+		}
 
-		diffs, err := e.maskTable(ctx, tableCfg, p)
+		if e.PlanOnly {
+			report.Tables = append(report.Tables, tr)
+			continue
+		}
+
+		diffs, tableResults, err := e.maskTable(ctx, tableCfg, p)
 		if err != nil {
 			return nil, err
 		}
+		tr.Updated = tableResults.Updated
+		tr.Retried = tableResults.Retried
+		tr.Failed = tableResults.Failed
+
+		report.Tables = append(report.Tables, tr)
 		report.Diffs = append(report.Diffs, diffs...)
 	}
 	return report, nil
 }
 
-func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p producer.Producer) ([]Diff, error) {
+func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p producer.Producer) ([]Diff, TableReport, error) {
+	results := TableReport{Name: tableCfg.Name}
 	columnNames := make([]string, 0, len(tableCfg.Columns))
 	generators := make(map[string]generator.Generator)
 
@@ -105,7 +122,7 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 		columnNames = append(columnNames, col.Name)
 		gen, err := generator.NewGenerator(col.Gen)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create generator for column %s: %w", col.Name, err)
+			return nil, results, fmt.Errorf("failed to create generator for column %s: %w", col.Name, err)
 		}
 		generators[col.Name] = gen
 	}
@@ -117,7 +134,7 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 
 	rows, err := p.FetchRows(ctx, columnNames, limit)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch rows: %w", err)
+		return nil, results, fmt.Errorf("failed to fetch rows: %w", err)
 	}
 	defer func() {
 		_ = rows.Close()
@@ -129,7 +146,7 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 		var err error
 		tx, err = e.DB.Begin(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to start transaction: %w", err)
+			return nil, results, fmt.Errorf("failed to start transaction: %w", err)
 		}
 		defer func() {
 			if tx != nil {
@@ -211,9 +228,12 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 		bar = progressbar.Default(count, fmt.Sprintf("Masking %s", tableCfg.Name))
 	}
 
+	maxRetries := 10
+
 	// Writer loop
 	for row := range outputChan {
 		if e.DryRun {
+			results.Updated++
 			for i, colName := range columnNames {
 				diffs = append(diffs, Diff{
 					TableName:  tableCfg.Name,
@@ -224,9 +244,33 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 				})
 			}
 		} else {
-			args := append([]any{row.pkValue}, row.newValues...)
-			if err := tx.Exec(ctx, updateQuery, args...); err != nil {
-				return nil, fmt.Errorf("update error: %w", err)
+			attempt := 0
+			for {
+				args := append([]any{row.pkValue}, row.newValues...)
+				err := tx.Exec(ctx, updateQuery, args...)
+				if err == nil {
+					results.Updated++
+					break
+				}
+
+				var pgErr *pgconn.PgError
+				if errors.As(err, &pgErr) && pgErr.Code == "23505" && attempt < maxRetries {
+					attempt++
+					results.Retried++
+					// Re-generate values for retry
+					for j, colName := range columnNames {
+						newVal, genErr := generators[colName].Generate(generator.NewRowContext(tableCfg.Name, colName, row.pkValue))
+						if genErr != nil {
+							return nil, results, fmt.Errorf("retry gen error: %w", genErr)
+						}
+						row.newValues[j] = newVal
+					}
+					continue
+				}
+
+				results.Failed++
+				// In a real app, we might want to continue or abort based on config
+				return nil, results, fmt.Errorf("update error on table %s, pk %v: %w", tableCfg.Name, row.pkValue, err)
 			}
 			if bar != nil {
 				_ = bar.Add(1)
@@ -235,7 +279,7 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 	}
 
 	if err := g.Wait(); err != nil {
-		return nil, fmt.Errorf("table %s masking failed: %w", tableCfg.Name, err)
+		return nil, results, fmt.Errorf("table %s masking failed: %w", tableCfg.Name, err)
 	}
 
 	if !e.DryRun {
@@ -244,10 +288,10 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 			fmt.Println()
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, fmt.Errorf("commit error: %w", err)
+			return nil, results, fmt.Errorf("commit error: %w", err)
 		}
 		tx = nil
 	}
 
-	return diffs, nil
+	return diffs, results, nil
 }

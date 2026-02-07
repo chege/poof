@@ -84,10 +84,20 @@ var applyCmd = &cobra.Command{
 
 		engine := engine.NewEngine(client, cfg, workers)
 		engine.DryRun = dryRun
-		_, err = engine.Apply(ctx)
+		report, err := engine.Apply(ctx)
 		if err != nil {
 			ui.Error("Apply failed: %v", err)
 			os.Exit(1)
+		}
+
+		totalUpdated := int64(0)
+		totalRetried := int64(0)
+		totalFailed := int64(0)
+
+		for _, t := range report.Tables {
+			totalUpdated += t.Updated
+			totalRetried += t.Retried
+			totalFailed += t.Failed
 		}
 
 		if dryRun {
@@ -96,6 +106,11 @@ var applyCmd = &cobra.Command{
 			ui.Success("Masking completed successfully.")
 			slog.Info("Masking process finished.")
 		}
+
+		ui.Bold("\nSummary:")
+		ui.Info("Updated: %d", totalUpdated)
+		ui.Info("Retried: %d (Unique violations resolved)", totalRetried)
+		ui.Info("Failed:  %d", totalFailed)
 	},
 }
 

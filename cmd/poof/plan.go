@@ -44,6 +44,32 @@ var planCmd = &cobra.Command{
 		}
 		defer client.Close()
 
+		// Validate schema
+		for _, tableCfg := range cfg.Tables {
+			var tableCols []db.ColumnInfo
+			tableCols, err = client.GetTableColumns(ctx, tableCfg.Name)
+			if err != nil {
+				ui.Error("Failed to inspect table %s: %v", tableCfg.Name, err)
+				os.Exit(1)
+			}
+			if len(tableCols) == 0 {
+				ui.Error("Table %s not found in database", tableCfg.Name)
+				os.Exit(1)
+			}
+
+			colMap := make(map[string]bool)
+			for _, c := range tableCols {
+				colMap[c.Name] = true
+			}
+
+			for _, c := range tableCfg.Columns {
+				if !colMap[c.Name] {
+					ui.Error("Column %s not found in table %s", c.Name, tableCfg.Name)
+					os.Exit(1)
+				}
+			}
+		}
+
 		engine := engine.NewEngine(client, cfg, workers)
 		engine.DryRun = true
 
