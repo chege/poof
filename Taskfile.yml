@@ -11,8 +11,13 @@ tasks:
     cmds:
       - go test -v ./...
 
+  tidy:
+    desc: Tidy go modules
+    cmds:
+      - go mod tidy
+
   fmt:
-    desc: Format Go code
+    desc: Format Go code (fixes in-place)
     cmds:
       - gofmt -w .
 
@@ -21,26 +26,34 @@ tasks:
     cmds:
       - go vet ./...
 
-  check:
-    desc: Run formatting, vet, and tests
+  ready:
+    desc: Prepare code (tidy, fmt, vet) and run tests
     cmds:
+      - task: tidy
       - task: fmt
       - task: vet
       - task: test
 
-  init:
-    desc: Initialize the project (placeholder for now)
+  check:
+    desc: Alias for ready
     cmds:
-      - echo "Project initialized"
+      - task: ready
+
+  init:
+    desc: Initialize the project
+    cmds:
+      - ./dbmask init --explain
 
   plan:
-    desc: Show masking plan (placeholder for future implementation)
+    desc: Show masking plan
     cmds:
-      - echo "Planning not yet implemented as a separate command"
+      - ./dbmask plan --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "dbmask.hcl"}}"
+    vars:
+      DB_URL: '{{.DB_URL | default "postgres://user:pass@localhost:5432/testdb"}}'
 
   apply:
     desc: Apply masking rules
     cmds:
-      - ./dbmask apply --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "dbmask.hcl"}}"
+      - ./dbmask apply --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "dbmask.hcl"}}" --yes
     vars:
       DB_URL: '{{.DB_URL | default "postgres://user:pass@localhost:5432/testdb"}}'

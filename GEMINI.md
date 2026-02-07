@@ -83,6 +83,9 @@ The project follows a standard Go project layout:
     3.  Checkout `main` and merge using `git merge --ff-only`. **Fast-forward merges are MANDATORY.**
 
 ## Contribution Guidelines
+
 - All new features start with a specification in `specs/`.
-- Ensure `task check` passes before committing.
+
+- Ensure `task ready` passes before committing.
+
 - Do not commit binaries or secrets.
