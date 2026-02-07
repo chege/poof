@@ -5,13 +5,14 @@ import (
 	"context"
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/christopher/poof/internal/config"
 	"github.com/christopher/poof/internal/db"
 	_ "github.com/christopher/poof/internal/db/postgres"
 	"github.com/christopher/poof/internal/engine"
 	"github.com/christopher/poof/internal/generator"
 	"github.com/christopher/poof/internal/ui"
-	"github.com/spf13/cobra"
 )
 
 var planCmd = &cobra.Command{

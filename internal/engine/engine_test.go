@@ -5,15 +5,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/christopher/poof/internal/config"
-	"github.com/christopher/poof/internal/db"
-	_ "github.com/christopher/poof/internal/db/postgres"
-	"github.com/christopher/poof/internal/generator"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
+
+	"github.com/christopher/poof/internal/config"
+	"github.com/christopher/poof/internal/db"
+	_ "github.com/christopher/poof/internal/db/postgres"
+	"github.com/christopher/poof/internal/generator"
 )
 
 func TestE2E(t *testing.T) {

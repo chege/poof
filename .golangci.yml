@@ -11,12 +11,19 @@ linters:
     - misspell
     - unconvert
     - unparam
+    - gci
 
 linters-settings:
   govet:
     enable-all: true
   errcheck:
     check-type-assertions: true
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(github.com/christopher/poof)
+    custom-order: true
 
 run:
   timeout: 5m

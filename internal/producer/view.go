@@ -3,6 +3,7 @@ package producer
 import (
 	"context"
 	"fmt"
+
 	"github.com/christopher/poof/internal/config"
 	"github.com/christopher/poof/internal/db"
 )

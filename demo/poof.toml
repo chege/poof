@@ -1,0 +1,41 @@
+# poof demo configuration
+
+[database]
+dsn = "postgres://poof:poof@localhost:5432/poof_demo?sslmode=disable"
+
+[safety]
+allowed_db_names = ["poof_demo"]
+
+[[tables]]
+name = "users"
+pk = "id"
+
+  [[tables.columns]]
+  name = "full_name"
+  [tables.columns.gen]
+  type = "faker"
+  provider = "full_name"
+
+  [[tables.columns]]
+  name = "email"
+  [tables.columns.gen]
+  type = "faker"
+  provider = "email"
+
+  [[tables.columns]]
+  name = "company"
+  [tables.columns.gen]
+  type = "faker"
+  provider = "company_name"
+
+  [[tables.columns]]
+  name = "phone"
+  [tables.columns.gen]
+  type = "faker"
+  provider = "phone_number"
+
+  [[tables.columns]]
+  name = "bio"
+  [tables.columns.gen]
+  type = "faker"
+  provider = "short_text"

@@ -2,9 +2,29 @@
 
 `poof` is a PostgreSQL data masking tool designed to be deterministic, parallel-safe, and declarative.
 
+## Try poof in 2 minutes
+
+Experience `poof` immediately without any setup.
+
+**Requirements:**
+- Docker
+- Go (1.25.7+)
+
+**Run the demo:**
+```bash
+task demo
+```
+
+**What this does:**
+1. Spins up a local PostgreSQL container.
+2. Loads sample user data.
+3. Runs `poof plan` to show you exactly how the data will be masked.
+
+To clean up: `task demo:clean`
+
 ## Features
 
-- **Declarative HCL Configuration**: Define masking rules in a human-readable format.
+- **Declarative TOML Configuration**: Define masking rules in a human-readable format.
 - **Deterministic**: Masking is based on a seed derived from the table name and primary key, ensuring consistent results across runs.
 - **Parallel-Safe**: Uses a worker pool for efficient data generation without affecting determinism.
 - **Safe-by-Default**: Refuses to run on databases not in the allowlist unless `--force` is provided.
@@ -22,32 +42,36 @@ This project uses `task` (Taskfile.dev) for common operations:
 
 ## Usage
 
-Create a `poof.hcl` file:
+Create a `poof.toml` file:
 
-```hcl
-allowlist = ["testdb"]
+```toml
+[database]
+dsn = "postgres://user:pass@localhost:5432/testdb"
 
-table "users" {
-  pk = "id"
+[safety]
+allowed_db_names = ["testdb"]
 
-  column "full_name" {
-    gen "faker" {
-      provider = "full_name"
-    }
-  }
+[[tables]]
+name = "users"
+pk = "id"
 
-  column "username" {
-    gen "faker" {
-      provider = "username"
-    }
-  }
-}
+  [[tables.columns]]
+  name = "full_name"
+  [tables.columns.gen]
+  type = "faker"
+  provider = "full_name"
+
+  [[tables.columns]]
+  name = "username"
+  [tables.columns.gen]
+  type = "faker"
+  provider = "username"
 ```
 
 Run the masking tool:
 
 ```bash
-./poof apply --db "postgres://user:pass@localhost:5432/testdb" --config poof.hcl
+./poof apply --config poof.toml
 ```
 
 ## Supported Generators
@@ -71,31 +95,31 @@ Run the masking tool:
 You can control how rows are selected for masking using the `source` block:
 
 ### Table (Default)
-```hcl
-table "users" {
-  pk = "id"
-  # Omitted source defaults to table scan
-}
+```toml
+[[tables]]
+name = "users"
+pk = "id"
+# Omitted source defaults to table scan
 ```
 
 ### View
-```hcl
-table "users" {
-  pk = "id"
-  source "view" {
-    name = "active_users_view"
-  }
-}
+```toml
+[[tables]]
+name = "users"
+pk = "id"
+[tables.source]
+type = "view"
+name = "active_users_view"
 ```
 
 ### Custom Query
-```hcl
-table "users" {
-  pk = "id"
-  source "query" {
-    sql = "SELECT id FROM users WHERE active = true ORDER BY id"
-  }
-}
+```toml
+[[tables]]
+name = "users"
+pk = "id"
+[tables.source]
+type = "query"
+sql = "SELECT id FROM users WHERE active = true ORDER BY id"
 ```
 *Note: Custom queries MUST include `ORDER BY pk` to ensure determinism.*
 

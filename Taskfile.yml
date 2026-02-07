@@ -93,3 +93,18 @@ tasks:
     cmds:
       - task: ready
       - task: build
+
+  demo:
+    desc: Run a self-contained poof demo
+    cmds:
+      - docker compose -f demo/docker-compose.yml up -d --wait
+      - docker exec -i $(docker compose -f demo/docker-compose.yml ps -q db) psql -U poof -d poof_demo < demo/demo.sql
+      - go run ./cmd/poof plan --config demo/poof.toml
+      - echo "---"
+      - echo "To apply the masking, run:"
+      - echo "go run ./cmd/poof apply --config demo/poof.toml"
+
+  demo:clean:
+    desc: Stop and remove demo containers
+    cmds:
+      - docker compose -f demo/docker-compose.yml down -v

@@ -5,11 +5,12 @@ import (
 	"context"
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/christopher/poof/internal/config"
 	_ "github.com/christopher/poof/internal/db/postgres"
 	"github.com/christopher/poof/internal/engine"
 	"github.com/christopher/poof/internal/ui"
-	"github.com/spf13/cobra"
 )
 
 var doctorCmd = &cobra.Command{

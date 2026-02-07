@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: poof
+      POSTGRES_PASSWORD: poof
+      POSTGRES_DB: poof_demo
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U poof -d poof_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5

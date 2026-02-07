@@ -2,6 +2,7 @@ package producer
 
 import (
 	"context"
+
 	"github.com/christopher/poof/internal/config"
 	"github.com/christopher/poof/internal/db"
 )

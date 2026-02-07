@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/christopher/poof/internal/db"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/christopher/poof/internal/db"
 )
 
 // Client implements the db.DB interface for PostgreSQL.

@@ -5,12 +5,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/schollz/progressbar/v3"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/christopher/poof/internal/config"
 	"github.com/christopher/poof/internal/db"
 	"github.com/christopher/poof/internal/generator"
 	"github.com/christopher/poof/internal/producer"
-	"github.com/schollz/progressbar/v3"
-	"golang.org/x/sync/errgroup"
 )
 
 // Engine orchestrates the data masking process across multiple tables and workers.
