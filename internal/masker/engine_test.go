@@ -47,10 +47,6 @@ func TestE2E(t *testing.T) {
 	}
 	defer client.Close()
 
-	// We need a way to exec raw SQL for seeding in tests.
-	// Since DB interface is minimal, we might need a type assertion or a helper.
-	// For now, I'll use a hacky way since the test is internal to masker.
-	// Actually, I can just use Begin/Tx.Exec if I add it to Tx.
 	tx, _ := client.Begin(ctx)
 	tx.Exec(ctx, `
 		CREATE TABLE users (
@@ -66,6 +62,8 @@ func TestE2E(t *testing.T) {
 	// 3. Mask
 	generator.RegisterAll()
 	cfg := &config.Config{
+		Database: config.Database{DSN: connStr},
+		Safety:   config.Safety{AllowedDBNames: []string{"testdb"}},
 		Tables: []config.Table{
 			{
 				Name: "users",
@@ -128,6 +126,8 @@ func TestE2E_DryRun(t *testing.T) {
 
 	generator.RegisterAll()
 	cfg := &config.Config{
+		Database: config.Database{DSN: connStr},
+		Safety:   config.Safety{AllowedDBNames: []string{"testdb"}},
 		Tables: []config.Table{{
 			Name: "users", PK: "id",
 			Columns: []config.Column{{Name: "name", Gen: config.Gen{Type: "faker", Provider: "test_name"}}},
@@ -173,6 +173,8 @@ func TestE2E_QueryProducer(t *testing.T) {
 
 	generator.RegisterAll()
 	cfg := &config.Config{
+		Database: config.Database{DSN: connStr},
+		Safety:   config.Safety{AllowedDBNames: []string{"testdb"}},
 		Tables: []config.Table{{
 			Name: "users", PK: "id",
 			Source: &config.Source{
@@ -201,6 +203,7 @@ func TestE2E_QueryProducer(t *testing.T) {
 	rows2.Next()
 	rows2.Scan(&name2)
 	rows2.Close()
+
 	assert.Equal(t, "Masked", name1)
 	assert.Equal(t, "Real 2", name2)
 }
@@ -226,6 +229,8 @@ func TestDeterminism(t *testing.T) {
 
 	generator.RegisterAll()
 	cfg := &config.Config{
+		Database: config.Database{DSN: connStr},
+		Safety:   config.Safety{AllowedDBNames: []string{"testdb"}},
 		Tables: []config.Table{{
 			Name: "users", PK: "id",
 			Columns: []config.Column{{Name: "name", Gen: config.Gen{Type: "faker", Provider: "first_name"}}},

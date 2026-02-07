@@ -24,13 +24,18 @@ var planCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		ctx := context.Background()
-		if dbConnStr == "" {
-			ui.Error("Database connection string is required (--db)")
+		dsn := dbConnStr
+		if dsn == "" {
+			dsn = cfg.Database.DSN
+		}
+
+		if dsn == "" {
+			ui.Error("Database connection string is required (either in config or via --db)")
 			os.Exit(1)
 		}
 
-		client, err := db.Connect(ctx, dbConnStr)
+		ctx := context.Background()
+		client, err := db.Connect(ctx, dsn)
 		if err != nil {
 			ui.Error("DB error: %v", err)
 			os.Exit(1)

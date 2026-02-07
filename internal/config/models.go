@@ -1,33 +1,54 @@
 package config
 
 type Config struct {
-	Allowlist []string `hcl:"allowlist,optional"`
-	Tables    []Table  `hcl:"table,block"`
+	Database Database `toml:"database"`
+	Safety   Safety   `toml:"safety"`
+	Tables   []Table  `toml:"tables"`
+}
+
+type Database struct {
+	DSN string `toml:"dsn"`
+}
+
+type Safety struct {
+	AllowedDBNames []string `toml:"allowed_db_names"`
 }
 
 type Table struct {
-	Name    string   `hcl:"name,label"`
-	PK      string   `hcl:"pk"`
-	Source  *Source  `hcl:"source,block"`
-	Columns []Column `hcl:"column,block"`
-}
-
-type Source struct {
-	Type   string            `hcl:"type,label"`
-	Name   string            `hcl:"name,optional"`
-	SQL    string            `hcl:"sql,optional"`
-	Params map[string]string `hcl:"params,optional"`
+	Name    string   `toml:"name"`
+	PK      string   `toml:"pk"`
+	Source  *Source  `toml:"source"`
+	Columns []Column `toml:"columns"`
 }
 
 type Column struct {
-	Name string `hcl:"name,label"`
-	Gen  Gen    `hcl:"gen,block"`
+	Name string `toml:"name"`
+	Gen  Gen    `toml:"gen"`
 }
 
 type Gen struct {
-	Type     string            `hcl:"type,label"`
-	Provider string            `hcl:"provider,optional"`
-	Value    string            `hcl:"value,optional"`
-	Template string            `hcl:"template,optional"`
-	Params   map[string]string `hcl:"params,optional"`
+	Type     string            `toml:"type"`
+	Provider string            `toml:"provider"`
+	Value    string            `toml:"value"`
+	Template string            `toml:"template"`
+	Params   map[string]string `toml:"params"`
+}
+
+type Source struct {
+	Type   string            `toml:"type"`
+	Name   string            `toml:"name"`
+	SQL    string            `toml:"sql"`
+	Params map[string]string `toml:"params"`
+}
+
+func (c *Config) IsAllowed(dbName string) bool {
+	if len(c.Safety.AllowedDBNames) == 0 {
+		return false
+	}
+	for _, allowed := range c.Safety.AllowedDBNames {
+		if allowed == dbName {
+			return true
+		}
+	}
+	return false
 }

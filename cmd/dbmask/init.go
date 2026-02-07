@@ -14,7 +14,7 @@ var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a new dbmask.hcl configuration file",
 	Run: func(cmd *cobra.Command, args []string) {
-		path := "dbmask.hcl"
+		path := "dbmask.toml"
 		if _, err := os.Stat(path); err == nil {
 			ui.Error("File %s already exists. Refusing to overwrite.", path)
 			os.Exit(1)

@@ -10,7 +10,7 @@ import (
 
 var validateCmd = &cobra.Command{
 	Use:   "validate",
-	Short: "Validate the HCL configuration file",
+	Short: "Validate the TOML configuration file",
 	Run: func(cmd *cobra.Command, args []string) {
 		_, err := config.LoadConfig(configPath)
 		if err != nil {

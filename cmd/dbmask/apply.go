@@ -6,7 +6,7 @@ import (
 
 	"github.com/christopher/masker/internal/config"
 	"github.com/christopher/masker/internal/db"
-	_ "github.com/christopher/masker/internal/db/postgres" // Register Postgres backend
+	_ "github.com/christopher/masker/internal/db/postgres"
 	"github.com/christopher/masker/internal/generator"
 	"github.com/christopher/masker/internal/masker"
 	"github.com/christopher/masker/internal/ui"
@@ -31,13 +31,18 @@ var applyCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		ctx := context.Background()
-		if dbConnStr == "" {
-			ui.Error("Database connection string is required (--db)")
+		dsn := dbConnStr
+		if dsn == "" {
+			dsn = cfg.Database.DSN
+		}
+
+		if dsn == "" {
+			ui.Error("Database connection string is required (either in config or via --db)")
 			os.Exit(1)
 		}
 
-		client, err := db.Connect(ctx, dbConnStr)
+		ctx := context.Background()
+		client, err := db.Connect(ctx, dsn)
 		if err != nil {
 			ui.Error("DB connection error: %v", err)
 			os.Exit(1)
@@ -51,7 +56,7 @@ var applyCmd = &cobra.Command{
 		}
 
 		if !cfg.IsAllowed(dbName) && !force {
-			ui.Error("Database %q is not in the allowlist and --force was not provided.", dbName)
+			ui.Error("Database %q is not in the allowed_db_names list and --force was not provided.", dbName)
 			os.Exit(1)
 		}
 

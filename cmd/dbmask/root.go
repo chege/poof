@@ -31,7 +31,7 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&noColor, "no-color", false, "Disable color output")
-	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "dbmask.hcl", "Path to HCL config file")
-	rootCmd.PersistentFlags().StringVarP(&dbConnStr, "db", "d", "", "PostgreSQL connection string")
+	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "dbmask.toml", "Path to TOML config file")
+	rootCmd.PersistentFlags().StringVarP(&dbConnStr, "db", "d", "", "PostgreSQL connection string (overrides config)")
 	rootCmd.PersistentFlags().IntVarP(&workers, "workers", "w", 4, "Number of parallel workers")
 }

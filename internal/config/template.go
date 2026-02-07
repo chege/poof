@@ -1,51 +1,63 @@
 package config
 
 func DefaultTemplate(explain bool) string {
-	content := `allowlist = ["testdb", "production"]
+	content := `[database]
+dsn = "postgres://user:pass@localhost:5432/testdb"
 
-table "users" {
-  pk = "id" # Primary key is REQUIRED for deterministic masking
+[safety]
+allowed_db_names = ["testdb"]
 
-  column "full_name" {
-    gen "faker" {
-      provider = "full_name"
-    }
-  }
+[[tables]]
+name = "users"
+pk = "id"
 
-  column "email" {
-    gen "faker" {
-      provider = "email"
-    }
-  }
-}
+  [[tables.columns]]
+  name = "full_name"
+  [tables.columns.gen]
+  type = "faker"
+  provider = "full_name"
+
+  [[tables.columns]]
+  name = "email"
+  [tables.columns.gen]
+  type = "faker"
+  provider = "email"
 `
 	if explain {
-		content = `# dbmask configuration file
+		content = `# dbmask configuration file (TOML)
 # For more info see: https://github.com/christopher/masker
 
-# allowlist: A list of database names where masking is allowed to run without --force.
-allowlist = ["testdb", "production"]
+# [database] section: Connection details.
+[database]
+# dsn: The Data Source Name for connecting to the database.
+dsn = "postgres://user:pass@localhost:5432/testdb"
 
-# table: Defines masking rules for a specific table.
-table "users" {
-  # pk: The primary key column name. Used to seed the random generator for each row.
-  pk = "id"
+# [safety] section: Guardrails for irreversible masking.
+[safety]
+# allowed_db_names: List of databases where masking is allowed without --force.
+allowed_db_names = ["testdb"]
 
-  # column: Defines how to mask a specific column.
-  column "full_name" {
-    # gen: Specifies the generator type and its configuration.
-    gen "faker" {
-      # provider: The specific faker data type to use.
-      provider = "full_name"
-    }
-  }
+# [[tables]] section: Define rules for a table (can be multiple).
+[[tables]]
+name = "users"
+# pk: The primary key column name. REQUIRED for deterministic masking.
+pk = "id"
 
-  column "email" {
-    gen "faker" {
-      provider = "email"
-    }
-  }
-}
+  # [[tables.columns]] section: Defines how to mask a specific column.
+  [[tables.columns]]
+  name = "full_name"
+  # [tables.columns.gen] section: Generator configuration.
+  [tables.columns.gen]
+  # type: Generator type (faker, template, constant, null).
+  type = "faker"
+  # provider: Specific data type for faker.
+  provider = "full_name"
+
+  [[tables.columns]]
+  name = "email"
+  [tables.columns.gen]
+  type = "faker"
+  provider = "email"
 `
 	}
 	return content

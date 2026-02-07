@@ -219,6 +219,11 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 
 	if !e.DryRun {
 		return nil, tx.Commit(ctx)
+	} else {
+		// Just in case, ensure rollback in dry run
+		if tx != nil {
+			tx.Rollback(ctx)
+		}
 	}
 	return diffs, nil
 }

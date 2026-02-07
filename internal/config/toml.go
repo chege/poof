@@ -1,0 +1,43 @@
+package config
+
+import (
+	"fmt"
+	"io"
+	"os"
+
+	"github.com/BurntSushi/toml"
+)
+
+func LoadConfig(path string) (*Config, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open config: %w", err)
+	}
+	defer f.Close()
+
+	var cfg Config
+	decoder := toml.NewDecoder(f)
+	// Strict validation: check for unknown keys
+	metadata, err := decoder.Decode(&cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse TOML: %w", err)
+	}
+
+	if len(metadata.Undecoded()) > 0 {
+		return nil, fmt.Errorf("config contains unknown fields: %v", metadata.Undecoded())
+	}
+
+	if cfg.Database.DSN == "" {
+		return nil, fmt.Errorf("config must contain [database] dsn")
+	}
+
+	if len(cfg.Tables) == 0 {
+		return nil, fmt.Errorf("config must contain at least one [[tables]] block")
+	}
+
+	return &cfg, nil
+}
+
+func (c *Config) Save(w io.Writer) error {
+	return toml.NewEncoder(w).Encode(c)
+}

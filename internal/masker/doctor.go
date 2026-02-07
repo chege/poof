@@ -10,7 +10,7 @@ import (
 	"github.com/christopher/masker/internal/ui"
 )
 
-func CheckReadiness(ctx context.Context, configPath string, dbConnStr string) bool {
+func CheckReadiness(ctx context.Context, configPath string, dsn string) bool {
 	success := true
 
 	// 1. Config Check
@@ -23,7 +23,7 @@ func CheckReadiness(ctx context.Context, configPath string, dbConnStr string) bo
 	}
 
 	// 2. Database Check
-	client, err := db.Connect(ctx, dbConnStr)
+	client, err := db.Connect(ctx, dsn)
 	if err != nil {
 		ui.Error("Database connectivity: %v", err)
 		success = false
@@ -39,9 +39,9 @@ func CheckReadiness(ctx context.Context, configPath string, dbConnStr string) bo
 			// 3. Safety Check
 			if cfg != nil {
 				if cfg.IsAllowed(dbName) {
-					ui.Success("Database is in the allowlist")
+					ui.Success("Database is in the allowed_db_names list")
 				} else {
-					ui.Warning("Database %q is not in the allowlist (requires --force)", dbName)
+					ui.Warning("Database %q is not in the allowed_db_names list (requires --force)", dbName)
 				}
 			}
 		}
