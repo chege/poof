@@ -3,12 +3,12 @@ package masker
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/christopher/masker/internal/config"
 	"github.com/christopher/masker/internal/db"
 	"github.com/christopher/masker/internal/generator"
 	"github.com/christopher/masker/internal/producer"
+	"github.com/schollz/progressbar/v3"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -90,10 +90,6 @@ func (e *Engine) Apply(ctx context.Context) (*MaskingReport, error) {
 }
 
 func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p producer.Producer) ([]Diff, error) {
-	if !e.DryRun {
-		slog.Info("Masking table", "table", tableCfg.Name, "workers", e.Workers)
-	}
-
 	columnNames := make([]string, 0, len(tableCfg.Columns))
 	generators := make(map[string]generator.Generator)
 
@@ -198,6 +194,12 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 	}()
 
 	var diffs []Diff
+	var bar *progressbar.ProgressBar
+	if !e.DryRun {
+		count, _ := p.EstimateCount(ctx)
+		bar = progressbar.Default(count, fmt.Sprintf("Masking %s", tableCfg.Name))
+	}
+
 	// Writer/Collector loop (runs in the current goroutine)
 	for row := range outputChan {
 		if e.DryRun {
@@ -216,6 +218,9 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 			if err != nil {
 				return nil, fmt.Errorf("failed to update row: %w", err)
 			}
+			if bar != nil {
+				_ = bar.Add(1)
+			}
 		}
 	}
 
@@ -224,6 +229,10 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 	}
 
 	if !e.DryRun {
+		if bar != nil {
+			_ = bar.Finish()
+			fmt.Println() // Newline after bar
+		}
 		return nil, tx.Commit(ctx)
 	} else {
 		if tx != nil {
