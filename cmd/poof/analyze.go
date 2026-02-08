@@ -51,7 +51,7 @@ func runAnalyze(ctx context.Context) error {
 		return nil
 	}
 
-	fmt.Println(ui.Bold("\nSuggested Masking Configuration (TOML snippet):"))
+	ui.Bold("\nSuggested Masking Configuration (TOML snippet):")
 
 	currentTable := ""
 	for _, s := range suggestions {
