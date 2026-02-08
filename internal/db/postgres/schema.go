@@ -21,7 +21,15 @@ func (c *Client) GetTableColumns(ctx context.Context, tableName string) ([]db.Co
 				WHERE cu.table_name = c.table_name 
 				  AND cu.column_name = c.column_name 
 				  AND tc.constraint_type IN ('UNIQUE', 'PRIMARY KEY')
-			) as has_unique
+			) as has_unique,
+			EXISTS (
+				SELECT 1 
+				FROM information_schema.constraint_column_usage cu
+				JOIN information_schema.table_constraints tc ON tc.constraint_name = cu.constraint_name
+				WHERE cu.table_name = c.table_name 
+				  AND cu.column_name = c.column_name 
+				  AND tc.constraint_type = 'PRIMARY KEY'
+			) as is_pk
 		FROM information_schema.columns c
 		WHERE table_name = $1
 		ORDER BY ordinal_position;
@@ -36,7 +44,7 @@ func (c *Client) GetTableColumns(ctx context.Context, tableName string) ([]db.Co
 	var columns []db.ColumnInfo
 	for rows.Next() {
 		var col db.ColumnInfo
-		if err := rows.Scan(&col.Name, &col.DataType, &col.IsNullable, &col.HasUnique); err != nil {
+		if err := rows.Scan(&col.Name, &col.DataType, &col.IsNullable, &col.HasUnique, &col.IsPrimaryKey); err != nil {
 			return nil, fmt.Errorf("scanning column info: %w", err)
 		}
 		columns = append(columns, col)

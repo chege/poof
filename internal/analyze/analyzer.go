@@ -42,6 +42,11 @@ func (a *Analyzer) Analyze(ctx context.Context) ([]Suggestion, error) {
 		}
 
 		for _, col := range columns {
+			// Never suggest masking the primary key
+			if col.IsPrimaryKey {
+				continue
+			}
+
 			for _, rule := range DefaultRules {
 				if rule.Regex.MatchString(col.Name) {
 					suggestions = append(suggestions, Suggestion{

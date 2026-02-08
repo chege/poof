@@ -23,10 +23,11 @@ type Tx interface {
 
 // ColumnInfo represents metadata about a database column.
 type ColumnInfo struct {
-	Name       string
-	DataType   string
-	IsNullable bool
-	HasUnique  bool
+	Name         string
+	DataType     string
+	IsNullable   bool
+	HasUnique    bool
+	IsPrimaryKey bool
 }
 
 // DB defines the minimal interface for a database backend.

@@ -25,8 +25,15 @@ func (c *Config) ValidateStatic(gv GeneratorValidator) error {
 	}
 
 	for _, table := range c.Tables {
+		pk := table.PK
+		if pk == "" {
+			pk = "id" // Default
+		}
 
 		for _, col := range table.Columns {
+			if col.Name == pk {
+				return fmt.Errorf("table %q: cannot mask the primary key column %q", table.Name, pk)
+			}
 
 			gen := col.Gen
 
