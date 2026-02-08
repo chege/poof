@@ -3,7 +3,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -13,9 +17,10 @@ import (
 )
 
 var (
-	force  bool
-	yes    bool
-	dryRun bool
+	force      bool
+	yes        bool
+	dryRun     bool
+	reportPath string
 )
 
 var applyCmd = &cobra.Command{
@@ -93,6 +98,23 @@ func runApply(ctx context.Context) error {
 	ui.Info("Updated: %d", totalUpdated)
 	ui.Info("Retried: %d (Unique violations resolved)", totalRetried)
 	ui.Info("Failed:  %d", totalFailed)
+	ui.Info("Duration: %v", report.Duration.Round(time.Millisecond))
+
+	if reportPath != "" {
+		f, err := os.Create(filepath.Clean(reportPath))
+		if err != nil {
+			ui.Error("Failed to create report file: %v", err)
+		} else {
+			encoder := json.NewEncoder(f)
+			encoder.SetIndent("", "  ")
+			if err := encoder.Encode(report); err != nil {
+				ui.Error("Failed to write report: %v", err)
+			} else {
+				ui.Success("Execution report saved to %s", reportPath)
+			}
+			_ = f.Close()
+		}
+	}
 
 	if totalFailed > 0 {
 		return ui.ErrPartial
@@ -106,4 +128,5 @@ func init() {
 	applyCmd.Flags().BoolVar(&force, "force", false, "Force apply even if database is not in allowlist")
 	applyCmd.Flags().BoolVarP(&yes, "yes", "y", false, "Skip plan summary and proceed immediately")
 	applyCmd.Flags().BoolVar(&dryRun, "dry-run", false, "Execute masking but do not commit changes")
+	applyCmd.Flags().StringVar(&reportPath, "report", "", "Path to save the masking execution report (JSON)")
 }

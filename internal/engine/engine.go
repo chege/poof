@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/jackc/pgconn"
 	"github.com/schollz/progressbar/v3"
@@ -42,8 +43,11 @@ type TableReport struct {
 
 // MaskingReport provides a comprehensive summary of masking operations.
 type MaskingReport struct {
-	Tables []TableReport
-	Diffs  []Diff
+	StartTime time.Time
+	EndTime   time.Time
+	Tables    []TableReport
+	Diffs     []Diff
+	Duration  time.Duration
 }
 
 // Diff represents a single row value change.
@@ -81,7 +85,9 @@ type rowData struct {
 // Apply executes the masking rules as defined in the configuration.
 func (e *Engine) Apply(ctx context.Context) (*MaskingReport, error) {
 	producer.RegisterAll()
-	report := &MaskingReport{}
+	report := &MaskingReport{
+		StartTime: time.Now(),
+	}
 	for _, tableCfg := range e.Config.Tables {
 		p, err := producer.NewProducer(ctx, e.DB, tableCfg.Name, tableCfg.PK, tableCfg.Source)
 		if err != nil {
@@ -120,6 +126,8 @@ func (e *Engine) Apply(ctx context.Context) (*MaskingReport, error) {
 		report.Tables = append(report.Tables, tr)
 		report.Diffs = append(report.Diffs, diffs...)
 	}
+	report.EndTime = time.Now()
+	report.Duration = report.EndTime.Sub(report.StartTime)
 	return report, nil
 }
 
