@@ -76,7 +76,7 @@ func LoadResources(ctx context.Context) (*CLIContext, error) {
 
 	client, err := db.Connect(ctx, dsn)
 	if err != nil {
-		return nil, ui.WrapError(ui.ErrConnection, err)
+		return nil, ui.WrapError(ui.ErrConnection, fmt.Errorf("%v (check if your database is running and the DSN is correct)", err))
 	}
 
 	return &CLIContext{
@@ -87,7 +87,7 @@ func LoadResources(ctx context.Context) (*CLIContext, error) {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&noColor, "no-color", false, "Disable color output")
-	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "poof.toml", "Path to TOML config file")
+	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "poof.toml", "Path to TOML config file (supports ${VAR} expansion)")
 	rootCmd.PersistentFlags().StringVarP(&dbConnStr, "db", "d", "", "PostgreSQL connection string (overrides config)")
 	rootCmd.PersistentFlags().StringVarP(&envName, "env", "e", "", "Select database environment from config")
 	rootCmd.PersistentFlags().IntVarP(&workers, "workers", "w", 4, "Number of parallel workers")
