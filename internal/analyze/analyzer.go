@@ -42,8 +42,8 @@ func (a *Analyzer) Analyze(ctx context.Context) ([]Suggestion, error) {
 		}
 
 		for _, col := range columns {
-			// Never suggest masking the primary key
-			if col.IsPrimaryKey {
+			// Never suggest masking the primary key or foreign keys
+			if col.IsPrimaryKey || col.IsForeignKey {
 				continue
 			}
 

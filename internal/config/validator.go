@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/christopher/poof/internal/db"
+	"github.com/christopher/poof/internal/ui"
 )
 
 // GeneratorValidator defines the interface for validating generator parameters.
@@ -81,14 +82,18 @@ func (c *Config) ValidateDatabase(ctx context.Context, client db.DB) error {
 			return fmt.Errorf("table %q not found in database %q", tableCfg.Name, dbName)
 		}
 
-		colMap := make(map[string]bool)
+		colMap := make(map[string]db.ColumnInfo)
 		for _, col := range cols {
-			colMap[col.Name] = true
+			colMap[col.Name] = col
 		}
 
 		for _, colCfg := range tableCfg.Columns {
-			if !colMap[colCfg.Name] {
+			info, exists := colMap[colCfg.Name]
+			if !exists {
 				return fmt.Errorf("column %q not found in table %q", colCfg.Name, tableCfg.Name)
+			}
+			if info.IsForeignKey {
+				ui.Warning("Table %q: Column %q is a FOREIGN KEY. Masking it may break relational integrity.", tableCfg.Name, colCfg.Name)
 			}
 		}
 	}

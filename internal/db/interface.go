@@ -28,6 +28,7 @@ type ColumnInfo struct {
 	IsNullable   bool
 	HasUnique    bool
 	IsPrimaryKey bool
+	IsForeignKey bool
 }
 
 // DB defines the minimal interface for a database backend.
