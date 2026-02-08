@@ -17,7 +17,11 @@ var outputJSON bool
 
 var analyzeCmd = &cobra.Command{
 	Use:   "analyze",
-	Short: "Analyze database schema and suggest columns for masking",
+	Short: "Scan database schema for PII and suggest rules",
+	Long: `Inspects the database schema and uses heuristic rules to identify
+potentially sensitive columns (Email, Names, IPs, etc.).
+Outputs a TOML snippet that can be copied into poof.toml.
+This command is advisory only and makes no changes.`,
 	Run: func(cmd *cobra.Command, _ []string) {
 		ui.HandleExit(runAnalyze(cmd.Context()))
 	},

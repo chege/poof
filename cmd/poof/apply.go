@@ -20,7 +20,9 @@ var (
 
 var applyCmd = &cobra.Command{
 	Use:   "apply",
-	Short: "Apply data masking rules to the database",
+	Short: "Execute data masking on the database",
+	Long: `Applies the configured masking rules to the selected database environment.
+Supports --dry-run to simulate the transformation without committing changes.`,
 	Run: func(cmd *cobra.Command, _ []string) {
 		ui.HandleExit(runApply(cmd.Context()))
 	},

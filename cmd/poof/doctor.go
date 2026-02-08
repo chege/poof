@@ -12,7 +12,11 @@ import (
 
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
-	Short: "Check if the environment is ready for masking",
+	Short: "Run pre-flight readiness checks",
+	Long: `Performs a series of diagnostic checks to ensure the environment
+is correctly configured for masking.
+Checks include database connectivity, configuration semantic validity,
+and schema existence.`,
 	Run: func(cmd *cobra.Command, _ []string) {
 		ui.HandleExit(runDoctor(cmd.Context()))
 	},

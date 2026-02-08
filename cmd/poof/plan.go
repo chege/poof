@@ -15,7 +15,10 @@ import (
 
 var planCmd = &cobra.Command{
 	Use:   "plan",
-	Short: "Show a summary of masking changes",
+	Short: "Preview masking changes (read-only)",
+	Long: `Loads the configuration and database schema to show a detailed plan
+of which tables and columns will be masked, including sample transformation previews.
+This command never modifies database data.`,
 	Run: func(cmd *cobra.Command, _ []string) {
 		ui.HandleExit(runPlan(cmd.Context()))
 	},
