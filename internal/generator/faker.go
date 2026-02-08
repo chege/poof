@@ -59,6 +59,12 @@ func GetFakerProvider(locale, name string) (FakerProvider, bool) {
 	return nil, false
 }
 
+// ProviderExists checks if a faker provider exists for the given locale or the default locale.
+func ProviderExists(locale, name string) bool {
+	_, ok := GetFakerProvider(locale, name)
+	return ok
+}
+
 type fakerGenerator struct {
 	providerName string
 }

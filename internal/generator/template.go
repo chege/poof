@@ -9,6 +9,18 @@ import (
 	"github.com/christopher/poof/internal/config"
 )
 
+// ValidateTemplate checks if a template string is syntactically correct.
+func ValidateTemplate(text string) error {
+	// We use the same dummy FuncMap as NewTemplateGenerator
+	funcMap := template.FuncMap{
+		"faker":   func(_ string) (string, error) { return "", nil },
+		"counter": func() (string, error) { return "", nil },
+		"hash":    func() (string, error) { return "", nil },
+	}
+	_, err := template.New("validate").Funcs(funcMap).Parse(text)
+	return err
+}
+
 type templateGenerator struct {
 	tmpl *template.Template
 }

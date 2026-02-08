@@ -6,8 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	_ "github.com/christopher/poof/internal/db/postgres"
-	"github.com/christopher/poof/internal/engine"
+	"github.com/christopher/poof/internal/generator"
 	"github.com/christopher/poof/internal/ui"
 )
 
@@ -26,9 +25,23 @@ func runDoctor(ctx context.Context) error {
 	}
 	defer cli.DB.Close()
 
-	if !engine.CheckReadiness(ctx, configPath, cli.DB) {
-		return ui.WrapError(ui.ErrConnection, nil)
+	ui.Info("Running pre-flight checks...")
+
+	// 1. Static Validation
+	generator.RegisterAll()
+	if err := cli.Config.ValidateStatic(&generator.Validator{}); err != nil {
+		ui.Error("Static validation: %v", err)
+		return ui.WrapError(ui.ErrConfig, err)
 	}
+	ui.Success("Configuration semantics are valid")
+
+	// 2. Database Validation
+	if err := cli.Config.ValidateDatabase(ctx, cli.DB); err != nil {
+		ui.Error("Database validation: %v", err)
+		return ui.WrapError(ui.ErrConfig, err)
+	}
+	ui.Success("Database schema and safety checks passed")
+
 	ui.Success("Everything looks good! You are ready to mask.")
 	return nil
 }

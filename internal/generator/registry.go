@@ -39,3 +39,35 @@ func NewGenerator(gen config.Gen) (Generator, error) {
 	}
 	return factory(gen)
 }
+
+// ValidateGen checks if the generator configuration is semantically valid.
+func ValidateGen(locale string, gen config.Gen) error {
+	registryMu.RLock()
+	_, ok := factories[gen.Type]
+	registryMu.RUnlock()
+
+	if !ok {
+		return fmt.Errorf("unknown generator type %q", gen.Type)
+	}
+
+	switch gen.Type {
+	case "faker":
+		if !ProviderExists(locale, gen.Provider) {
+			return fmt.Errorf("unknown faker provider %q", gen.Provider)
+		}
+	case "template":
+		if err := ValidateTemplate(gen.Template); err != nil {
+			return fmt.Errorf("invalid template: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// Validator implements the config.GeneratorValidator interface.
+type Validator struct{}
+
+// ValidateGen checks if the generator configuration is semantically valid.
+func (v *Validator) ValidateGen(locale string, gen config.Gen) error {
+	return ValidateGen(locale, gen)
+}
