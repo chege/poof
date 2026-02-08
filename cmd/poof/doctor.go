@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -17,31 +16,38 @@ var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Check if the environment is ready for masking",
 	Run: func(_ *cobra.Command, _ []string) {
-		ctx := context.Background()
-
-		// Load config first to get DSN if not provided via flag
-		cfg, err := config.LoadConfig(configPath)
-		if err != nil {
-			ui.Error("Config error: %v", err)
-			os.Exit(1)
-		}
-
-		dsn := dbConnStr
-		if dsn == "" {
-			dsn = cfg.Database.DSN
-		}
-
-		if dsn == "" {
-			ui.Error("Database connection string is required (either in config or via --db)")
-			os.Exit(1)
-		}
-
-		if !engine.CheckReadiness(ctx, configPath, dsn) {
-			ui.Error("Doctor found issues. Please fix them before running apply.")
-			os.Exit(1)
-		}
-		ui.Success("Everything looks good! You are ready to mask.")
+		ui.HandleExit(runDoctor())
 	},
+}
+
+func runDoctor() error {
+	ctx := context.Background()
+
+	// Load config first to get DSN if not provided via flag
+	cfg, err := config.LoadConfig(configPath)
+	if err != nil {
+		return ui.WrapError(ui.ErrConfig, err)
+	}
+
+	dsn := dbConnStr
+	if dsn == "" {
+		var dbEnv config.Database
+		dbEnv, err = cfg.GetDatabase(envName)
+		if err != nil {
+			return ui.WrapError(ui.ErrConfig, err)
+		}
+		dsn = dbEnv.DSN
+	}
+
+	if dsn == "" {
+		return ui.WrapError(ui.ErrConfig, config.ErrMissingDSN)
+	}
+
+	if !engine.CheckReadiness(ctx, configPath, dsn) {
+		return ui.WrapError(ui.ErrConnection, nil)
+	}
+	ui.Success("Everything looks good! You are ready to mask.")
+	return nil
 }
 
 func init() {

@@ -4,7 +4,6 @@ package main
 import (
 	"context"
 	"log/slog"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -26,92 +25,101 @@ var applyCmd = &cobra.Command{
 	Use:   "apply",
 	Short: "Apply data masking rules to the database",
 	Run: func(_ *cobra.Command, _ []string) {
-		generator.RegisterAll()
-
-		cfg, err := config.LoadConfig(configPath)
-		if err != nil {
-			ui.Error("Config error: %v", err)
-			os.Exit(1)
-		}
-
-		ctx := context.Background()
-		if dbConnStr == "" {
-			dbConnStr = cfg.Database.DSN
-		}
-
-		if dbConnStr == "" {
-			ui.Error("Database connection string is required (either in config or via --db)")
-			os.Exit(1)
-		}
-
-		client, err := db.Connect(ctx, dbConnStr)
-		if err != nil {
-			ui.Error("DB connection error: %v", err)
-			os.Exit(1)
-		}
-		defer client.Close()
-
-		dbName, err := client.GetDatabaseName(ctx)
-		if err != nil {
-			ui.Error("DB name error: %v", err)
-			os.Exit(1)
-		}
-
-		slog.Info("Starting masking process", "database", dbName, "config", configPath, "dry_run", dryRun)
-
-		if !cfg.IsAllowed(dbName) && !force {
-			ui.Error("Database %q is not in the allowed_db_names list and --force was not provided.", dbName)
-			os.Exit(1)
-		}
-
-		if !yes && !dryRun {
-			ui.Info("Running plan before apply...")
-			preEngine := engine.NewEngine(client, cfg, workers)
-			preEngine.DryRun = true
-			_, err = preEngine.Apply(ctx)
-			if err != nil {
-				ui.Error("Pre-apply plan failed: %v", err)
-				os.Exit(1)
-			}
-			ui.Success("Pre-flight plan completed.")
-		}
-
-		if dryRun {
-			ui.Info("Applying masking (DRY RUN)...")
-		} else {
-			ui.Info("Applying masking...")
-		}
-
-		engine := engine.NewEngine(client, cfg, workers)
-		engine.DryRun = dryRun
-		report, err := engine.Apply(ctx)
-		if err != nil {
-			ui.Error("Apply failed: %v", err)
-			os.Exit(1)
-		}
-
-		totalUpdated := int64(0)
-		totalRetried := int64(0)
-		totalFailed := int64(0)
-
-		for _, t := range report.Tables {
-			totalUpdated += t.Updated
-			totalRetried += t.Retried
-			totalFailed += t.Failed
-		}
-
-		if dryRun {
-			ui.Success("Dry run completed successfully. No changes were made.")
-		} else {
-			ui.Success("Masking completed successfully.")
-			slog.Info("Masking process finished.")
-		}
-
-		ui.Bold("\nSummary:")
-		ui.Info("Updated: %d", totalUpdated)
-		ui.Info("Retried: %d (Unique violations resolved)", totalRetried)
-		ui.Info("Failed:  %d", totalFailed)
+		ui.HandleExit(runApply())
 	},
+}
+
+func runApply() error {
+	generator.RegisterAll()
+
+	cfg, err := config.LoadConfig(configPath)
+	if err != nil {
+		return ui.WrapError(ui.ErrConfig, err)
+	}
+
+	ctx := context.Background()
+	dsn := dbConnStr
+	if dsn == "" {
+		var dbEnv config.Database
+		dbEnv, err = cfg.GetDatabase(envName)
+		if err != nil {
+			return ui.WrapError(ui.ErrConfig, err)
+		}
+		dsn = dbEnv.DSN
+	}
+
+	if dsn == "" {
+		return ui.WrapError(ui.ErrConfig, config.ErrMissingDSN)
+	}
+
+	client, err := db.Connect(ctx, dsn)
+	if err != nil {
+		return ui.WrapError(ui.ErrConnection, err)
+	}
+	defer client.Close()
+
+	dbName, err := client.GetDatabaseName(ctx)
+	if err != nil {
+		return ui.WrapError(ui.ErrConnection, err)
+	}
+
+	slog.Info("Starting masking process", "database", dbName, "config", configPath, "dry_run", dryRun)
+
+	if !cfg.IsAllowed(dbName) && !force {
+		return ui.WrapError(ui.ErrSafety, nil)
+	}
+
+	if !yes && !dryRun {
+		ui.Info("Running plan before apply...")
+		preEngine := engine.NewEngine(client, cfg, workers)
+		preEngine.DryRun = true
+		_, err = preEngine.Apply(ctx)
+		if err != nil {
+			return err
+		}
+		ui.Success("Pre-flight plan completed.")
+	}
+
+	if dryRun {
+		ui.Info("Applying masking (DRY RUN)...")
+	} else {
+		ui.Info("Applying masking...")
+	}
+
+	eng := engine.NewEngine(client, cfg, workers)
+	eng.DryRun = dryRun
+	report, err := eng.Apply(ctx)
+	if err != nil {
+		return err
+	}
+
+	totalUpdated := int64(0)
+	totalRetried := int64(0)
+	totalFailed := int64(0)
+
+	for _, t := range report.Tables {
+		totalUpdated += t.Updated
+		totalRetried += t.Retried
+		totalFailed += t.Failed
+	}
+
+	if dryRun {
+		ui.Success("Dry run completed successfully. No changes were made.")
+	} else {
+		ui.Success("Masking completed successfully.")
+		slog.Info("Masking process finished.")
+	}
+
+	ui.Bold("\nSummary:")
+	ui.Info("Updated: %d", totalUpdated)
+	ui.Info("Retried: %d (Unique violations resolved)", totalRetried)
+	ui.Info("Failed:  %d", totalFailed)
+
+	if totalFailed > 0 {
+		return ui.ErrPartial
+	}
+
+	return nil
 }
 
 func init() {

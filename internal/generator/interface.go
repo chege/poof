@@ -6,6 +6,7 @@ type RowContext struct {
 	PrimaryKeyValue any
 	TableName       string
 	ColumnName      string
+	Locale          string
 	Seed            [16]byte // MD5 hash used for deterministic generation
 }
 

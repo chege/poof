@@ -7,13 +7,14 @@ import (
 )
 
 // NewRowContext creates a new context for generating masked values for a specific row and column.
-func NewRowContext(tableName, columnName string, pkValue any) RowContext {
+func NewRowContext(tableName, columnName, locale string, pkValue any) RowContext {
 	data := fmt.Sprintf("%s:%v", tableName, pkValue)
 	// #nosec G401 -- MD5 is used for deterministic seeding, not for cryptographic security.
 	seed := md5.Sum([]byte(data))
 	return RowContext{
 		TableName:       tableName,
 		ColumnName:      columnName,
+		Locale:          locale,
 		PrimaryKeyValue: pkValue,
 		Seed:            seed,
 	}

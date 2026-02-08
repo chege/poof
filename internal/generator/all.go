@@ -88,6 +88,21 @@ func RegisterAll() {
 			return string(b)
 		})
 
+		// de_DE Providers
+		RegisterLocalizedFakerProvider("de_DE", "first_name", func(r *rand.Rand) any {
+			names := []string{"Hans", "Jürgen", "Karl", "Stefan", "Monika", "Angelika"}
+			return names[r.Intn(len(names))]
+		})
+		RegisterLocalizedFakerProvider("de_DE", "last_name", func(r *rand.Rand) any {
+			names := []string{"Müller", "Schmidt", "Schneider", "Fischer", "Weber", "Meyer"}
+			return names[r.Intn(len(names))]
+		})
+		RegisterLocalizedFakerProvider("de_DE", "full_name", func(r *rand.Rand) any {
+			first := []string{"Hans", "Jürgen", "Karl", "Stefan", "Monika", "Angelika"}
+			last := []string{"Müller", "Schmidt", "Schneider", "Fischer", "Weber", "Meyer"}
+			return fmt.Sprintf("%s %s", first[r.Intn(len(first))], last[r.Intn(len(last))])
+		})
+
 		RegisterTestFakers()
 	})
 }

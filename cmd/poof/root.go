@@ -14,6 +14,7 @@ var noColor bool
 var configPath string
 var dbConnStr string
 var workers int
+var envName string
 
 var rootCmd = &cobra.Command{
 	Use:   "poof",
@@ -32,7 +33,7 @@ var rootCmd = &cobra.Command{
 // Execute starts the CLI application.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		slog.Error("CLI execution failed", "error", err)
+		// Cobra already prints the error, but we want to ensure it's handled via our UI
 		os.Exit(1)
 	}
 }
@@ -41,5 +42,6 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&noColor, "no-color", false, "Disable color output")
 	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "poof.toml", "Path to TOML config file")
 	rootCmd.PersistentFlags().StringVarP(&dbConnStr, "db", "d", "", "PostgreSQL connection string (overrides config)")
+	rootCmd.PersistentFlags().StringVarP(&envName, "env", "e", "", "Select database environment from config")
 	rootCmd.PersistentFlags().IntVarP(&workers, "workers", "w", 4, "Number of parallel workers")
 }

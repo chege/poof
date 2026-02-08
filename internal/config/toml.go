@@ -13,6 +13,11 @@ import (
 
 var validate = validator.New()
 
+var (
+	// ErrMissingDSN is returned when no database connection string is provided.
+	ErrMissingDSN = fmt.Errorf("database connection string is required (either in config or via --db)")
+)
+
 // LoadConfig reads and validates a TOML configuration file from the given path.
 func LoadConfig(path string) (*Config, error) {
 	f, err := os.Open(filepath.Clean(path))
@@ -35,12 +40,53 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, fmt.Errorf("config contains unknown fields: %v", metadata.Undecoded())
 	}
 
+	// Backward compatibility: If 'database' exists but 'databases' doesn't, migrate it
+	if cfg.Database.DSN != "" && len(cfg.Databases) == 0 {
+		cfg.Databases = map[string]Database{
+			"default": cfg.Database,
+		}
+	}
+
+	if len(cfg.Databases) == 0 {
+		return nil, fmt.Errorf("config must contain at least one database definition")
+	}
+
 	// Run declarative validation
 	if err := validate.Struct(&cfg); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
 
 	return &cfg, nil
+}
+
+// GetDatabase returns the connection details for a specific environment.
+func (c *Config) GetDatabase(env string) (Database, error) {
+	if env != "" {
+		db, ok := c.Databases[env]
+		if !ok {
+			return Database{}, fmt.Errorf("database environment %q not found", env)
+		}
+		return db, nil
+	}
+
+	// Try to find the default
+	for _, db := range c.Databases {
+		if db.Default {
+			return db, nil
+		}
+	}
+
+	// Fallback to "default" named block
+	if db, ok := c.Databases["default"]; ok {
+		return db, nil
+	}
+
+	// Last resort: return the first one
+	for _, db := range c.Databases {
+		return db, nil
+	}
+
+	return Database{}, fmt.Errorf("no database environments configured")
 }
 
 // Save writes the configuration to the given writer in TOML format.

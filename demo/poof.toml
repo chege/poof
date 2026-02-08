@@ -1,10 +1,16 @@
 # poof demo configuration
 
-[database]
+[databases.local]
 dsn = "postgres://poof:poof@localhost:5432/poof_demo?sslmode=disable"
+default = true
+
+[databases.docker]
+dsn = "postgres://poof:poof@db:5432/poof_demo?sslmode=disable"
 
 [safety]
 allowed_db_names = ["poof_demo"]
+
+locale = "de_DE"
 
 [[tables]]
 name = "users"
@@ -15,6 +21,12 @@ pk = "id"
   [tables.columns.gen]
   type = "faker"
   provider = "full_name"
+
+  [[tables.columns]]
+  name = "username"
+  [tables.columns.gen]
+  type = "template"
+  template = "USER-{{ counter }}-{{ faker \"first_name\" }}"
 
   [[tables.columns]]
   name = "email"

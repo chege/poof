@@ -199,7 +199,7 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 					}
 					newValues := make([]any, len(columnNames))
 					for j, colName := range columnNames {
-						val, err := generators[colName].Generate(generator.NewRowContext(tableCfg.Name, colName, row.pkValue))
+						val, err := generators[colName].Generate(generator.NewRowContext(tableCfg.Name, colName, e.Config.Locale, row.pkValue))
 						if err != nil {
 							return fmt.Errorf("gen error: %w", err)
 						}
@@ -260,7 +260,7 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 					results.Retried++
 					// Re-generate values for retry
 					for j, colName := range columnNames {
-						newVal, genErr := generators[colName].Generate(generator.NewRowContext(tableCfg.Name, colName, row.pkValue))
+						newVal, genErr := generators[colName].Generate(generator.NewRowContext(tableCfg.Name, colName, e.Config.Locale, row.pkValue))
 						if genErr != nil {
 							return nil, results, fmt.Errorf("retry gen error: %w", genErr)
 						}

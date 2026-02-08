@@ -2,8 +2,6 @@
 package main
 
 import (
-	"os"
-
 	"github.com/spf13/cobra"
 
 	"github.com/christopher/poof/internal/config"
@@ -14,13 +12,17 @@ var validateCmd = &cobra.Command{
 	Use:   "validate",
 	Short: "Validate the TOML configuration file",
 	Run: func(_ *cobra.Command, _ []string) {
-		_, err := config.LoadConfig(configPath)
-		if err != nil {
-			ui.Error("Validation failed: %v", err)
-			os.Exit(1)
-		}
-		ui.Success("Configuration is valid.")
+		ui.HandleExit(runValidate())
 	},
+}
+
+func runValidate() error {
+	_, err := config.LoadConfig(configPath)
+	if err != nil {
+		return ui.WrapError(ui.ErrConfig, err)
+	}
+	ui.Success("Configuration is valid.")
+	return nil
 }
 
 func init() {

@@ -3,14 +3,17 @@ package config
 
 // Config represents the top-level poof configuration structure.
 type Config struct {
-	Database Database `toml:"database" validate:"required"`
-	Safety   Safety   `toml:"safety" validate:"required"`
-	Tables   []Table  `toml:"tables" validate:"required,dive,min=1"`
+	Database  Database            `toml:"database"` // Deprecated: use Databases instead
+	Databases map[string]Database `toml:"databases"`
+	Locale    string              `toml:"locale"`
+	Safety    Safety              `toml:"safety" validate:"required"`
+	Tables    []Table             `toml:"tables" validate:"required,dive,min=1"`
 }
 
 // Database contains the connection parameters for the target database.
 type Database struct {
-	DSN string `toml:"dsn" validate:"required"`
+	DSN     string `toml:"dsn" validate:"required"`
+	Default bool   `toml:"default"`
 }
 
 // Safety defines the guardrails for irreversible masking operations.
