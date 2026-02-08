@@ -38,6 +38,7 @@ task demo
 *   **🧠 Deterministic**: Masking values are seeded by `MD5(table_name + primary_key)`, ensuring consistent results across multiple runs and environments.
 *   **⚡ Parallel-Safe**: High-performance worker pool architecture scales to millions of rows while maintaining deterministic integrity.
 *   **🛠 Declarative**: Define your rules in human-readable TOML. No complex SQL scripts or brittle ETL pipelines.
+*   **🔐 Secret Management**: Supports `${ENV_VAR}` expansion in configuration files to keep credentials out of version control.
 *   **🚀 High-Performance Batching**: Uses PostgreSQL's `UPDATE ... FROM (VALUES ...)` to apply changes in bulk (default 500 rows/batch), providing 10x-50x speedups.
 *   **♻️ Smart Retries**: Automatically detects `UNIQUE` constraint violations and retries generation with a deterministic incrementer until successful.
 *   **🛡 No-Schema-Mod**: `poof` never runs `ALTER`, `DROP`, or `DISABLE CONSTRAINTS`. It works within your existing schema rules.
@@ -49,7 +50,8 @@ task demo
 | Command | Purpose |
 | :--- | :--- |
 | `poof init` | Scaffold a new `poof.toml` configuration file. |
-| `poof analyze` | **Advisory Mode.** Inspects your DB and suggests columns that need masking. |
+| `poof analyze` | **Advisory Mode.** Inspects your DB and suggests columns that need masking. Supports `--json`. |
+| `poof validate` | Performs deep semantic and schema validation of your configuration. |
 | `poof plan` | Dry-run preview. Shows exactly what will happen without changing a single byte. |
 | `poof apply` | Executes the masking. Supports `--dry-run` for a full simulation. |
 | `poof doctor` | Checks your environment, DB connections, and config health. |
@@ -61,11 +63,17 @@ task demo
 Define your masking rules in `poof.toml`:
 
 ```toml
-[database]
-dsn = "postgres://user:pass@localhost:5432/my_app"
+[databases.staging]
+dsn = "postgres://poof_user:${STAGING_DB_PASS}@staging-db:5432/app"
+
+[databases.local]
+dsn = "postgres://localhost:5432/dev_db"
+default = true
 
 [safety]
 allowed_db_names = ["staging_db", "dev_db"]
+salt = "your-secret-global-salt"
+```
 
 [[tables]]
 name = "users"
