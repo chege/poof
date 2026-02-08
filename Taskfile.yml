@@ -60,14 +60,14 @@ tasks:
   doctor:
     desc: Run environment readiness check
     cmds:
-      - ./poof doctor --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "poof.hcl"}}"
+      - ./poof doctor --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "poof.toml"}}"
     vars:
       DB_URL: '{{.DB_URL | default "postgres://user:pass@localhost:5432/testdb"}}'
 
   validate:
     desc: Validate the configuration file
     cmds:
-      - ./poof validate --config "{{.CONFIG_PATH | default "poof.hcl"}}"
+      - ./poof validate --config "{{.CONFIG_PATH | default "poof.toml"}}"
 
   verify:
     desc: Verify environment and configuration (doctor + validate)
@@ -83,14 +83,14 @@ tasks:
   plan:
     desc: Show masking plan
     cmds:
-      - ./poof plan --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "poof.hcl"}}"
+      - ./poof plan --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "poof.toml"}}"
     vars:
       DB_URL: '{{.DB_URL | default "postgres://user:pass@localhost:5432/testdb"}}'
 
   apply:
     desc: Apply masking rules
     cmds:
-      - ./poof apply --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "poof.hcl"}}" --yes
+      - ./poof apply --db "{{.DB_URL}}" --config "{{.CONFIG_PATH | default "poof.toml"}}" --yes
     vars:
       DB_URL: '{{.DB_URL | default "postgres://user:pass@localhost:5432/testdb"}}'
 

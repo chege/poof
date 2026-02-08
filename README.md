@@ -1,8 +1,8 @@
 # ✨ poof
 
-[![Go Version](https://img.shields.io/github/go-mod/go-version/christopher/masker?color=00ADD8&logo=go)](https://go.dev/)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/christopher/poof?color=00ADD8&logo=go)](https://go.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Safe by Default](https://img.shields.io/badge/Safety-First-blueviolet)](https://github.com/christopher/masker)
+[![Safe by Default](https://img.shields.io/badge/Safety-First-blueviolet)](https://github.com/christopher/poof)
 
 **Deterministic, parallel-safe, and declarative data masking for PostgreSQL.**
 
@@ -18,7 +18,7 @@ Experience `poof` immediately using our self-contained demo environment.
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/christopher/masker.git && cd masker
+git clone https://github.com/christopher/poof.git && cd poof
 
 # 2. Run the automated demo
 task demo
