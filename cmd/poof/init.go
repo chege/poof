@@ -31,6 +31,10 @@ var initCmd = &cobra.Command{
 		}
 
 		ui.Success("Initialized %s", path)
+		ui.Info("Next steps:")
+		ui.Info("  1. Edit %s to set your database connection.", path)
+		ui.Info("  2. Run 'poof analyze' to automatically suggest masking rules.")
+		ui.Info("  3. Run 'poof plan' to preview the transformation.")
 	},
 }
 
