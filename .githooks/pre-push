@@ -1,0 +1,46 @@
+#!/bin/sh
+set -eu
+
+pattern='^(feat|fix|chore|docs|refactor|test|perf|build|ci|style|revert)(\([A-Za-z0-9._-]+\))?(!)?: .+'
+invalid_messages=""
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$local_ref" in
+    refs/heads/*) ;;
+    *) continue ;;
+  esac
+
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    range="$local_sha"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+
+  commits=$(git rev-list "$range")
+  if [ -z "$commits" ]; then
+    continue
+  fi
+
+  while IFS= read -r sha; do
+    subject=$(git log -1 --format=%s "$sha")
+
+    if echo "$subject" | grep -Eq "$pattern"; then
+      continue
+    fi
+    case "$subject" in
+      Merge\ *|Revert\ *) continue ;;
+    esac
+    invalid_messages="$invalid_messages
+  - $subject"
+  done <<EOF
+$commits
+EOF
+done
+
+if [ -n "$invalid_messages" ]; then
+  echo "Commit message must follow Conventional Commits (Angular)."
+  echo "Examples: feat(rome): add plan command; fix: handle nil config; chore!: drop legacy flag"
+  echo "Breaking changes: use ! in the subject or add a BREAKING CHANGE: footer."
+  echo "Invalid commit messages:$invalid_messages"
+  exit 1
+fi

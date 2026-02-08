@@ -12,16 +12,17 @@ We love your input! We want to make contributing to `poof` as easy and transpare
 
 We use [Task](https://taskfile.dev/) to manage our development workflow.
 
-1. **Clone the repository**: `git clone https://github.com/christopher/poof.git`
+1. **Clone the repository**: `git clone https://github.com/chege/poof.git`
 2. **Install dependencies**: `go mod download`
-3. **Run tests**: `task test`
+3. **Run tests**: `go test ./...`
 4. **Make changes**: Hack away!
-5. **Verify changes**: `task ready` (runs fmt, lint, and tests)
+5. **Verify changes**: `gofmt -w .` and `go test ./...`
 6. **Submit a PR**: Open a pull request against the `main` branch.
 
 ## Standards
 
 - Follow [Conventional Commits](https://www.conventionalcommits.org/) for commit messages.
+- If you want local enforcement, enable the pre-push hook: `git config core.hooksPath .githooks`.
 - Ensure all tests pass.
 - Add tests for new features or bug fixes.
 - Keep the code clean and well-documented.
