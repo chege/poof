@@ -96,3 +96,7 @@ func (g *fakerGenerator) Generate(ctx RowContext) (any, error) {
 
 	return provider(r), nil
 }
+
+func (g *fakerGenerator) ExpectedType() string {
+	return "string" // Most faker providers currently return strings
+}

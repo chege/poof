@@ -14,3 +14,7 @@ func NewHashGenerator() Generator {
 func (g *hashGenerator) Generate(ctx RowContext) (any, error) {
 	return fmt.Sprintf("%x", ctx.Seed), nil
 }
+
+func (g *hashGenerator) ExpectedType() string {
+	return "string"
+}

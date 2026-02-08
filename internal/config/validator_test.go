@@ -11,11 +11,14 @@ type mockGeneratorValidator struct {
 	validProviders map[string]bool
 }
 
-func (m *mockGeneratorValidator) ValidateGen(_ string, gen Gen) error {
+func (m *mockGeneratorValidator) ValidateGen(_ string, gen Gen, sqlDataType string) error {
 	switch gen.Type {
 	case "faker":
 		if !m.validProviders[gen.Provider] {
 			return fmt.Errorf("unknown faker provider %q", gen.Provider)
+		}
+		if sqlDataType == "integer" && gen.Provider == "email" {
+			return fmt.Errorf("type mismatch")
 		}
 	case "template":
 		if gen.Template == "invalid" {

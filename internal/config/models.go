@@ -33,10 +33,11 @@ type Table struct {
 
 // Column defines which generator to use for a specific database column.
 type Column struct {
-	Name      string `toml:"name" validate:"required"`
-	SeedBy    string `toml:"seed_by"` // "pk" or "value"
-	Generator string `toml:"generator"`
-	Gen       Gen    `toml:"gen"`
+	Gen         Gen    `toml:"gen"`
+	Name        string `toml:"name" validate:"required"`
+	SeedBy      string `toml:"seed_by"`
+	Generator   string `toml:"generator"`
+	ForceUnique bool   `toml:"force_unique"`
 }
 
 // Gen defines the generator type and its specific configuration parameters.

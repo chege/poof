@@ -12,3 +12,7 @@ func NewNullGenerator() Generator {
 func (g *nullGenerator) Generate(_ RowContext) (any, error) {
 	return nil, nil
 }
+
+func (g *nullGenerator) ExpectedType() string {
+	return "null"
+}

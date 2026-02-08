@@ -103,3 +103,7 @@ func (g *templateGenerator) Generate(ctx RowContext) (any, error) {
 	}
 	return buf.String(), nil
 }
+
+func (g *templateGenerator) ExpectedType() string {
+	return "string"
+}

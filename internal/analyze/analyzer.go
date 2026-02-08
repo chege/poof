@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/christopher/poof/internal/db"
+	"github.com/christopher/poof/internal/ui"
 )
 
 // Suggestion represents a recommended masking configuration for a column.
@@ -34,6 +35,7 @@ func (a *Analyzer) Analyze(ctx context.Context) ([]Suggestion, error) {
 		return nil, fmt.Errorf("getting tables: %w", err)
 	}
 
+	// 1. Heuristic PII Analysis
 	var suggestions []Suggestion
 	for _, tableName := range tables {
 		columns, err := a.DB.GetTableColumns(ctx, tableName)
@@ -62,5 +64,44 @@ func (a *Analyzer) Analyze(ctx context.Context) ([]Suggestion, error) {
 		}
 	}
 
+	// 2. Circular Dependency Detection
+	a.detectCycles(ctx, tables)
+
 	return suggestions, nil
+}
+
+func (a *Analyzer) detectCycles(ctx context.Context, tables []string) {
+	adj := make(map[string][]string)
+	for _, table := range tables {
+		fks, err := a.DB.GetForeignKeys(ctx, table)
+		if err != nil {
+			continue
+		}
+		for _, fk := range fks {
+			adj[table] = append(adj[table], fk.ReferencedTableName)
+		}
+	}
+
+	visited := make(map[string]int) // 0: unvisited, 1: visiting, 2: visited
+	for _, table := range tables {
+		if visited[table] == 0 {
+			if a.hasCycle(table, adj, visited) {
+				ui.Warning("Circular dependency detected involving table %q. Review masking order.", table)
+			}
+		}
+	}
+}
+
+func (a *Analyzer) hasCycle(u string, adj map[string][]string, visited map[string]int) bool {
+	visited[u] = 1
+	for _, v := range adj[u] {
+		if visited[v] == 1 {
+			return true
+		}
+		if visited[v] == 0 && a.hasCycle(v, adj, visited) {
+			return true
+		}
+	}
+	visited[u] = 2
+	return false
 }

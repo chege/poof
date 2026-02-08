@@ -14,3 +14,7 @@ func NewConstantGenerator(value string) Generator {
 func (g *constantGenerator) Generate(_ RowContext) (any, error) {
 	return g.value, nil
 }
+
+func (g *constantGenerator) ExpectedType() string {
+	return "string"
+}

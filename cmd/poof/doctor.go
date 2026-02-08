@@ -40,7 +40,7 @@ func runDoctor(ctx context.Context) error {
 	ui.Success("Configuration semantics are valid")
 
 	// 2. Database Validation
-	if err := cli.Config.ValidateDatabase(ctx, cli.DB); err != nil {
+	if err := cli.Config.ValidateDatabase(ctx, cli.DB, &generator.Validator{}); err != nil {
 		ui.Error("Database validation: %v", err)
 		return ui.WrapError(ui.ErrConfig, err)
 	}

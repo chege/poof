@@ -31,11 +31,22 @@ type ColumnInfo struct {
 	IsForeignKey bool
 }
 
+// ForeignKey represents a relational link between two tables.
+type ForeignKey struct {
+	TableName            string
+	ColumnName           string
+	ReferencedTableName  string
+	ReferencedColumnName string
+}
+
 // DB defines the minimal interface for a database backend.
 type DB interface {
 	GetDatabaseName(ctx context.Context) (string, error)
 	GetTableColumns(ctx context.Context, tableName string) ([]ColumnInfo, error)
+	GetForeignKeys(ctx context.Context, tableName string) ([]ForeignKey, error)
 	GetAllTables(ctx context.Context) ([]string, error)
+	GetJobState(ctx context.Context) (string, error)
+	SetJobState(ctx context.Context, status string) error
 	EstimateRowCount(ctx context.Context, tableName string) (int64, error)
 	FetchRows(ctx context.Context, tableName string, pkColumn string, columns []string, filter string, limit int) (Rows, error)
 	Query(ctx context.Context, sql string, args ...any) (Rows, error)

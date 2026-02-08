@@ -22,3 +22,7 @@ func (g *counterGenerator) Generate(ctx RowContext) (any, error) {
 	}
 	return val, nil
 }
+
+func (g *counterGenerator) ExpectedType() string {
+	return "int64"
+}

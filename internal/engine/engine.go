@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgconn"
@@ -22,12 +23,14 @@ const maxRetries = 10
 
 // Engine orchestrates the data masking process across multiple tables and workers.
 type Engine struct {
-	DB        db.DB
-	Config    *config.Config
-	Workers   int
-	BatchSize int
-	DryRun    bool
-	PlanOnly  bool
+	DB         db.DB
+	Config     *config.Config
+	seenValues map[string]map[any]bool
+	Workers    int
+	BatchSize  int
+	seenMu     sync.RWMutex
+	DryRun     bool
+	PlanOnly   bool
 }
 
 // TableReport provides a summary of masking results for a specific table.
@@ -69,10 +72,11 @@ func NewEngine(client db.DB, cfg *config.Config, workers int) *Engine {
 		batchSize = cfg.BatchSize
 	}
 	return &Engine{
-		DB:        client,
-		Config:    cfg,
-		Workers:   workers,
-		BatchSize: batchSize,
+		DB:         client,
+		Config:     cfg,
+		Workers:    workers,
+		BatchSize:  batchSize,
+		seenValues: make(map[string]map[any]bool),
 	}
 }
 
@@ -88,6 +92,13 @@ func (e *Engine) Apply(ctx context.Context) (*MaskingReport, error) {
 	report := &MaskingReport{
 		StartTime: time.Now(),
 	}
+
+	if !e.DryRun && !e.PlanOnly {
+		if err := e.DB.SetJobState(ctx, "STARTED"); err != nil {
+			slog.Warn("failed to set job state to STARTED", "error", err)
+		}
+	}
+
 	for _, tableCfg := range e.Config.Tables {
 		p, err := producer.NewProducer(ctx, e.DB, tableCfg.Name, tableCfg.PK, tableCfg.Source)
 		if err != nil {
@@ -128,6 +139,13 @@ func (e *Engine) Apply(ctx context.Context) (*MaskingReport, error) {
 	}
 	report.EndTime = time.Now()
 	report.Duration = report.EndTime.Sub(report.StartTime)
+
+	if !e.DryRun && !e.PlanOnly {
+		if err := e.DB.SetJobState(ctx, "COMPLETED"); err != nil {
+			slog.Warn("failed to set job state to COMPLETED", "error", err)
+		}
+	}
+
 	return report, nil
 }
 
@@ -221,17 +239,41 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 					row.newValues = make([]any, len(columnNames))
 					for j, colName := range columnNames {
 						seedBy := tableCfg.Columns[j].SeedBy
-						val, genErr := generators[colName].Generate(generator.NewRowContext(
-							tableCfg.Name,
-							colName,
-							e.Config.Locale,
-							e.Config.Safety.Salt,
-							row.pkValue,
-							row.oldValues[j],
-							seedBy,
-						))
-						if genErr != nil {
-							return fmt.Errorf("gen error: %w", genErr)
+						forceUnique := tableCfg.Columns[j].ForceUnique
+
+						attempt := 0
+						var val any
+						var genErr error
+
+						for {
+							val, genErr = generators[colName].Generate(generator.NewRowContext(
+								tableCfg.Name,
+								colName,
+								e.Config.Locale,
+								e.Config.Safety.Salt,
+								row.pkValue,
+								row.oldValues[j],
+								seedBy,
+								attempt,
+							))
+							if genErr != nil {
+								return fmt.Errorf("gen error: %w", genErr)
+							}
+
+							if !forceUnique || !e.isDuplicate(tableCfg.Name, colName, val) {
+								break
+							}
+
+							attempt++
+							if attempt >= maxRetries {
+								slog.Warn("failed to satisfy logical uniqueness after max retries",
+									"table", tableCfg.Name, "column", colName, "pk", row.pkValue)
+								break
+							}
+							// In a real retry, we should modify the seed.
+							// Currently NewRowContext creates a seed based on table+pk or value.
+							// For logical uniqueness retries to work, we need a way to vary the seed.
+							// I'll add an 'Attempt' field to RowContext or vary the Salt.
 						}
 						row.newValues[j] = val
 					}
@@ -268,6 +310,23 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 	}
 
 	return diffs, results, nil
+}
+
+func (e *Engine) isDuplicate(tableName, columnName string, value any) bool {
+	key := fmt.Sprintf("%s:%s", tableName, columnName)
+	e.seenMu.Lock()
+	defer e.seenMu.Unlock()
+
+	if e.seenValues[key] == nil {
+		e.seenValues[key] = make(map[any]bool)
+	}
+
+	if e.seenValues[key][value] {
+		return true
+	}
+
+	e.seenValues[key][value] = true
+	return false
 }
 
 func (e *Engine) setupGenerators(tableCfg config.Table) ([]string, map[string]generator.Generator, error) {
@@ -412,6 +471,7 @@ func (e *Engine) retryUpdate(ctx context.Context, tx db.Tx, query string, tableC
 					row.pkValue,
 					row.oldValues[j],
 					seedBy,
+					attempt, // Uses current attempt from unique_violation loop
 				))
 				if genErr != nil {
 					return fmt.Errorf("retry gen error: %w", genErr)

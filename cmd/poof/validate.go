@@ -40,7 +40,7 @@ func runValidate(ctx context.Context) error {
 	// Level 3: Database Semantic
 	if dbCheck {
 		ui.Info("Running database schema validation...")
-		if err := cli.Config.ValidateDatabase(ctx, cli.DB); err != nil {
+		if err := cli.Config.ValidateDatabase(ctx, cli.DB, &generator.Validator{}); err != nil {
 			return ui.WrapError(ui.ErrConfig, err)
 		}
 	}

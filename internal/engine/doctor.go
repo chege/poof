@@ -32,7 +32,16 @@ func CheckReadiness(ctx context.Context, configPath string, client db.DB) bool {
 	} else {
 		ui.Success("Connected to database: %s", dbName)
 
+		// Check Job State
+		state, err := client.GetJobState(ctx)
+		if err == nil && (state == "STARTED" || state == "FAILED") {
+			ui.Warning("Database masking state is %q. A previous run may have failed or was interrupted.", state)
+		} else if state == "COMPLETED" {
+			ui.Success("Previous masking run was completed successfully")
+		}
+
 		// 3. Safety Check
+
 		if cfg != nil {
 			if cfg.IsAllowed(dbName) {
 				ui.Success("Database is in the allowed_db_names list")
