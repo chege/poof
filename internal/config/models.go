@@ -3,11 +3,12 @@ package config
 
 // Config represents the top-level poof configuration structure.
 type Config struct {
-	Database  Database            `toml:"database"` // Deprecated: use Databases instead
 	Databases map[string]Database `toml:"databases"`
 	Locale    string              `toml:"locale"`
+	Database  Database            `toml:"database"`
 	Safety    Safety              `toml:"safety" validate:"required"`
 	Tables    []Table             `toml:"tables" validate:"required,dive,min=1"`
+	BatchSize int                 `toml:"batch_size"`
 }
 
 // Database contains the connection parameters for the target database.

@@ -17,19 +17,23 @@ import (
 	"github.com/christopher/poof/internal/producer"
 )
 
+const maxRetries = 10
+
 // Engine orchestrates the data masking process across multiple tables and workers.
 type Engine struct {
-	DB       db.DB
-	Config   *config.Config
-	Workers  int
-	DryRun   bool
-	PlanOnly bool
+	DB        db.DB
+	Config    *config.Config
+	Workers   int
+	BatchSize int
+	DryRun    bool
+	PlanOnly  bool
 }
 
 // TableReport provides a summary of masking results for a specific table.
 type TableReport struct {
 	Name      string
 	Columns   []string
+	Types     []string // Corresponding SQL types for columns (index 0 is PK)
 	Estimates int64
 	Updated   int64
 	Retried   int64
@@ -56,10 +60,15 @@ func NewEngine(client db.DB, cfg *config.Config, workers int) *Engine {
 	if workers <= 0 {
 		workers = 1
 	}
+	batchSize := 500
+	if cfg != nil && cfg.BatchSize > 0 {
+		batchSize = cfg.BatchSize
+	}
 	return &Engine{
-		DB:      client,
-		Config:  cfg,
-		Workers: workers,
+		DB:        client,
+		Config:    cfg,
+		Workers:   workers,
+		BatchSize: batchSize,
 	}
 }
 
@@ -121,6 +130,20 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 		return nil, results, err
 	}
 
+	// Fetch types for bulk update casting
+	tableCols, err := e.DB.GetTableColumns(ctx, tableCfg.Name)
+	if err == nil {
+		typeMap := make(map[string]string)
+		for _, tc := range tableCols {
+			typeMap[tc.Name] = tc.DataType
+		}
+		// Index 0 is PK
+		results.Types = append(results.Types, typeMap[tableCfg.PK])
+		for _, cn := range columnNames {
+			results.Types = append(results.Types, typeMap[cn])
+		}
+	}
+
 	limit := 0
 	if e.DryRun {
 		limit = 5
@@ -135,7 +158,7 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 	}()
 
 	var tx db.Tx
-	var updateQuery string
+	var singleUpdateQuery string
 	if !e.DryRun {
 		tx, err = e.DB.Begin(ctx)
 		if err != nil {
@@ -147,7 +170,7 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 			}
 		}()
 
-		updateQuery = e.buildUpdateQuery(tableCfg.Name, tableCfg.PK, columnNames)
+		singleUpdateQuery = e.buildUpdateQuery(tableCfg.Name, tableCfg.PK, columnNames)
 	}
 
 	g, gCtx := errgroup.WithContext(ctx)
@@ -206,7 +229,7 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 		close(outputChan)
 	}()
 
-	diffs, err := e.writeResults(ctx, tableCfg, columnNames, generators, outputChan, tx, updateQuery, &results, p)
+	diffs, err := e.writeResults(ctx, tableCfg, columnNames, generators, outputChan, tx, singleUpdateQuery, &results, p)
 	if err != nil {
 		return nil, results, err
 	}
@@ -252,7 +275,7 @@ func (e *Engine) buildUpdateQuery(tableName, pk string, columns []string) string
 	return query
 }
 
-func (e *Engine) writeResults(ctx context.Context, tableCfg config.Table, columnNames []string, generators map[string]generator.Generator, outputChan <-chan rowData, tx db.Tx, updateQuery string, results *TableReport, p producer.Producer) ([]Diff, error) {
+func (e *Engine) writeResults(ctx context.Context, tableCfg config.Table, columnNames []string, generators map[string]generator.Generator, outputChan <-chan rowData, tx db.Tx, singleUpdateQuery string, results *TableReport, p producer.Producer) ([]Diff, error) {
 	var diffs []Diff
 	var bar *progressbar.ProgressBar
 	if !e.DryRun {
@@ -260,7 +283,21 @@ func (e *Engine) writeResults(ctx context.Context, tableCfg config.Table, column
 		bar = progressbar.Default(count, fmt.Sprintf("Masking %s", tableCfg.Name))
 	}
 
-	maxRetries := 10
+	buffer := make([]rowData, 0, e.BatchSize)
+
+	flush := func() error {
+		if len(buffer) == 0 {
+			return nil
+		}
+		if err := e.applyBatch(ctx, tx, tableCfg, columnNames, generators, buffer, singleUpdateQuery, results); err != nil {
+			return err
+		}
+		if bar != nil {
+			_ = bar.Add(len(buffer))
+		}
+		buffer = buffer[:0]
+		return nil
+	}
 
 	for row := range outputChan {
 		if e.DryRun {
@@ -275,13 +312,17 @@ func (e *Engine) writeResults(ctx context.Context, tableCfg config.Table, column
 				})
 			}
 		} else {
-			if err := e.retryUpdate(ctx, tx, updateQuery, tableCfg, columnNames, generators, &row, maxRetries, results); err != nil {
-				return nil, err
-			}
-			if bar != nil {
-				_ = bar.Add(1)
+			buffer = append(buffer, row)
+			if len(buffer) >= e.BatchSize {
+				if err := flush(); err != nil {
+					return nil, err
+				}
 			}
 		}
+	}
+
+	if err := flush(); err != nil {
+		return nil, err
 	}
 
 	if bar != nil {
@@ -292,7 +333,39 @@ func (e *Engine) writeResults(ctx context.Context, tableCfg config.Table, column
 	return diffs, nil
 }
 
-func (e *Engine) retryUpdate(ctx context.Context, tx db.Tx, query string, tableCfg config.Table, columnNames []string, generators map[string]generator.Generator, row *rowData, maxRetries int, results *TableReport) error {
+func (e *Engine) applyBatch(ctx context.Context, tx db.Tx, tableCfg config.Table, columnNames []string, generators map[string]generator.Generator, buffer []rowData, singleUpdateQuery string, results *TableReport) error {
+	query := e.buildBatchUpdateQuery(tableCfg.Name, tableCfg.PK, columnNames, results.Types, len(buffer))
+	args := make([]any, 0, len(buffer)*(len(columnNames)+1))
+	for _, row := range buffer {
+		args = append(args, row.pkValue)
+		args = append(args, row.newValues...)
+	}
+
+	// Use a savepoint to protect the transaction from batch failure
+	_ = tx.Exec(ctx, "SAVEPOINT poof_batch")
+
+	err := tx.Exec(ctx, query, args...)
+	if err == nil {
+		results.Updated += int64(len(buffer))
+		_ = tx.Exec(ctx, "RELEASE SAVEPOINT poof_batch")
+		return nil
+	}
+
+	// Rollback to savepoint so we can continue with individual updates
+	_ = tx.Exec(ctx, "ROLLBACK TO SAVEPOINT poof_batch")
+
+	// On batch failure, fallback to row-by-row
+	slog.Warn("batch update failed, falling back to individual updates", "error", err, "table", tableCfg.Name, "batch_size", len(buffer))
+	for _, row := range buffer {
+		r := row
+		if err := e.retryUpdate(ctx, tx, singleUpdateQuery, tableCfg, columnNames, generators, &r, maxRetries, results); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (e *Engine) retryUpdate(ctx context.Context, tx db.Tx, query string, tableCfg config.Table, columnNames []string, generators map[string]generator.Generator, row *rowData, retries int, results *TableReport) error {
 	attempt := 0
 	for {
 		args := append([]any{row.pkValue}, row.newValues...)
@@ -303,7 +376,7 @@ func (e *Engine) retryUpdate(ctx context.Context, tx db.Tx, query string, tableC
 		}
 
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" && attempt < maxRetries {
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" && attempt < retries {
 			attempt++
 			results.Retried++
 			// Re-generate values for retry

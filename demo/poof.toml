@@ -7,6 +7,8 @@ default = true
 [databases.docker]
 dsn = "postgres://poof:poof@db:5432/poof_demo?sslmode=disable"
 
+batch_size = 100
+
 [safety]
 allowed_db_names = ["poof_demo"]
 

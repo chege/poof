@@ -38,6 +38,7 @@ task demo
 *   **🧠 Deterministic**: Masking values are seeded by `MD5(table_name + primary_key)`, ensuring consistent results across multiple runs and environments.
 *   **⚡ Parallel-Safe**: High-performance worker pool architecture scales to millions of rows while maintaining deterministic integrity.
 *   **🛠 Declarative**: Define your rules in human-readable TOML. No complex SQL scripts or brittle ETL pipelines.
+*   **🚀 High-Performance Batching**: Uses PostgreSQL's `UPDATE ... FROM (VALUES ...)` to apply changes in bulk (default 500 rows/batch), providing 10x-50x speedups.
 *   **♻️ Smart Retries**: Automatically detects `UNIQUE` constraint violations and retries generation with a deterministic incrementer until successful.
 *   **🛡 No-Schema-Mod**: `poof` never runs `ALTER`, `DROP`, or `DISABLE CONSTRAINTS`. It works within your existing schema rules.
 

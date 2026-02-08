@@ -56,6 +56,10 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
 
+	if cfg.BatchSize <= 0 {
+		cfg.BatchSize = 500
+	}
+
 	return &cfg, nil
 }
 
