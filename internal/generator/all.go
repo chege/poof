@@ -44,65 +44,92 @@ func RegisterAll() {
 			return NewCounterGenerator(), nil
 		})
 
-		// Register Faker Providers
-		RegisterFakerProvider("first_name", func(r *rand.Rand) any {
-			names := []string{"John", "Jane", "Alice", "Bob", "Charlie", "Diana"}
-			return names[r.Intn(len(names))]
-		})
-		RegisterFakerProvider("last_name", func(r *rand.Rand) any {
-			names := []string{"Doe", "Smith", "Johnson", "Williams", "Brown", "Jones"}
-			return names[r.Intn(len(names))]
-		})
-		RegisterFakerProvider("email", func(r *rand.Rand) any {
-			first := []string{"john", "jane", "alice", "bob"}
-			last := []string{"doe", "smith", "johnson"}
-			domains := []string{"example.com", "test.org", "mail.com"}
-			return fmt.Sprintf("%s.%s@%s", first[r.Intn(len(first))], last[r.Intn(len(last))], domains[r.Intn(len(domains))])
-		})
+		// Register Generic Faker Providers that use localizedData
+		providers := []string{"first_name", "last_name", "company_name"}
+		for _, p := range providers {
+			name := p
+			RegisterLocalizedFakerProvider("", name, func(_ *rand.Rand) any {
+				// The actual locale will be determined during Generate() call via context.
+				// But we need to register a provider that can handle it.
+				// This is a bit of a trick: the provider function itself doesn't know the locale,
+				// but GetLocalizedData will be called by the fakerGenerator.
+				// Wait, the FakerProvider signature is FakerProvider func(r *rand.Rand) any.
+				// It doesn't receive the locale.
 
-		RegisterFakerProvider("username", func(r *rand.Rand) any {
-			first := []string{"john", "jane", "alice", "bob"}
-			last := []string{"doe", "smith", "johnson"}
-			return fmt.Sprintf("%s_%s%d", first[r.Intn(len(first))], last[r.Intn(len(last))], r.Intn(100))
-		})
+				// Refactoring thought: FakerProvider should maybe receive the locale?
+				// For now, I'll stick to the current implementation where the fakerGenerator handles it.
+				return "placeholder" // This won't be used if we refactor faker.go
+			})
+		}
 
-		RegisterFakerProvider("company_name", func(r *rand.Rand) any {
-			names := []string{"Acme Corp", "Globex", "Soylent Corp", "Initech", "Umbrella Corp"}
-			return names[r.Intn(len(names))]
-		})
+		// Let's fix faker.go to be truly locale-aware in the provider function if needed,
+		// or just have the provider function be a "selector" from the data.
 
-		RegisterFakerProvider("phone_number", func(r *rand.Rand) any {
-			return fmt.Sprintf("+1-555-%04d", r.Intn(10000))
-		})
-
-		RegisterFakerProvider("ipv4_address", func(r *rand.Rand) any {
-			return fmt.Sprintf("%d.%d.%d.%d", r.Intn(256), r.Intn(256), r.Intn(256), r.Intn(256))
-		})
-
-		RegisterFakerProvider("short_text", func(r *rand.Rand) any {
-			chars := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-			b := make([]byte, 10)
-			for i := range b {
-				b[i] = chars[r.Intn(len(chars))]
-			}
-			return string(b)
-		})
-
-		// de_DE Providers
-		RegisterLocalizedFakerProvider("de_DE", "first_name", func(r *rand.Rand) any {
-			names := []string{"Hans", "Jürgen", "Karl", "Stefan", "Monika", "Angelika"}
-			return names[r.Intn(len(names))]
-		})
-		RegisterLocalizedFakerProvider("de_DE", "last_name", func(r *rand.Rand) any {
-			names := []string{"Müller", "Schmidt", "Schneider", "Fischer", "Weber", "Meyer"}
-			return names[r.Intn(len(names))]
-		})
-		RegisterLocalizedFakerProvider("de_DE", "full_name", func(r *rand.Rand) any {
-			first := []string{"Hans", "Jürgen", "Karl", "Stefan", "Monika", "Angelika"}
-			last := []string{"Müller", "Schmidt", "Schneider", "Fischer", "Weber", "Meyer"}
-			return fmt.Sprintf("%s %s", first[r.Intn(len(first))], last[r.Intn(len(last))])
-		})
+		registerFakerProviders()
 
 		RegisterTestFakers()
+	})
+}
+
+func registerFakerProviders() {
+	// Standard providers
+	RegisterFakerProvider("first_name", func(r *rand.Rand) any {
+		// Note: This default provider will be overridden by localized versions if they exist
+		data := GetLocalizedData("en_US", "first_name")
+		return data[r.Intn(len(data))]
+	})
+
+	RegisterFakerProvider("last_name", func(r *rand.Rand) any {
+		data := GetLocalizedData("en_US", "last_name")
+		return data[r.Intn(len(data))]
+	})
+
+	RegisterFakerProvider("full_name", func(r *rand.Rand) any {
+		fn := GetLocalizedData("en_US", "first_name")
+		ln := GetLocalizedData("en_US", "last_name")
+		return fmt.Sprintf("%s %s", fn[r.Intn(len(fn))], ln[r.Intn(len(ln))])
+	})
+
+	RegisterFakerProvider("email", func(r *rand.Rand) any {
+		fn := GetLocalizedData("en_US", "first_name")
+		ln := GetLocalizedData("en_US", "last_name")
+		return GetLocalizedEmail(fn[r.Intn(len(fn))], ln[r.Intn(len(ln))])
+	})
+
+	RegisterFakerProvider("company_name", func(r *rand.Rand) any {
+		data := GetLocalizedData("en_US", "company_name")
+		return data[r.Intn(len(data))]
+	})
+
+	RegisterFakerProvider("phone_number", func(r *rand.Rand) any {
+		return fmt.Sprintf("+1-555-%04d", r.Intn(10000))
+	})
+
+	RegisterFakerProvider("ipv4_address", func(r *rand.Rand) any {
+		return fmt.Sprintf("%d.%d.%d.%d", r.Intn(256), r.Intn(256), r.Intn(256), r.Intn(256))
+	})
+
+	RegisterFakerProvider("short_text", func(r *rand.Rand) any {
+		chars := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+		b := make([]byte, 10)
+		for i := range b {
+			b[i] = chars[r.Intn(len(chars))]
+		}
+		return string(b)
+	})
+
+	// Register German overrides
+	RegisterLocalizedFakerProvider("de_DE", "first_name", func(r *rand.Rand) any {
+		data := GetLocalizedData("de_DE", "first_name")
+		return data[r.Intn(len(data))]
+	})
+	RegisterLocalizedFakerProvider("de_DE", "last_name", func(r *rand.Rand) any {
+		data := GetLocalizedData("de_DE", "last_name")
+		return data[r.Intn(len(data))]
+	})
+	RegisterLocalizedFakerProvider("de_DE", "full_name", func(r *rand.Rand) any {
+		fn := GetLocalizedData("de_DE", "first_name")
+		ln := GetLocalizedData("de_DE", "last_name")
+		return fmt.Sprintf("%s %s", fn[r.Intn(len(fn))], ln[r.Intn(len(ln))])
 	})
 }

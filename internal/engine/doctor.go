@@ -12,7 +12,7 @@ import (
 )
 
 // CheckReadiness performs a series of environment and configuration checks.
-func CheckReadiness(ctx context.Context, configPath string, dsn string) bool {
+func CheckReadiness(ctx context.Context, configPath string, client db.DB) bool {
 	success := true
 
 	// 1. Config Check
@@ -25,26 +25,19 @@ func CheckReadiness(ctx context.Context, configPath string, dsn string) bool {
 	}
 
 	// 2. Database Check
-	client, err := db.Connect(ctx, dsn)
+	dbName, err := client.GetDatabaseName(ctx)
 	if err != nil {
-		ui.Error("Database connectivity: %v", err)
+		ui.Error("Database name retrieval: %v", err)
 		success = false
 	} else {
-		defer client.Close()
-		dbName, err := client.GetDatabaseName(ctx)
-		if err != nil {
-			ui.Error("Database name retrieval: %v", err)
-			success = false
-		} else {
-			ui.Success("Connected to database: %s", dbName)
+		ui.Success("Connected to database: %s", dbName)
 
-			// 3. Safety Check
-			if cfg != nil {
-				if cfg.IsAllowed(dbName) {
-					ui.Success("Database is in the allowed_db_names list")
-				} else {
-					ui.Warning("Database %q is not in the allowed_db_names list (requires --force)", dbName)
-				}
+		// 3. Safety Check
+		if cfg != nil {
+			if cfg.IsAllowed(dbName) {
+				ui.Success("Database is in the allowed_db_names list")
+			} else {
+				ui.Warning("Database %q is not in the allowed_db_names list (requires --force)", dbName)
 			}
 		}
 	}

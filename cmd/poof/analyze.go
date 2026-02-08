@@ -7,8 +7,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/christopher/poof/internal/analyze"
-	"github.com/christopher/poof/internal/config"
-	"github.com/christopher/poof/internal/db"
 	_ "github.com/christopher/poof/internal/db/postgres"
 	"github.com/christopher/poof/internal/ui"
 )
@@ -23,32 +21,15 @@ var analyzeCmd = &cobra.Command{
 
 func runAnalyze() error {
 	ctx := context.Background()
-	dsn := dbConnStr
 
-	// Try to load config if path exists to support --env
-	cfg, err := config.LoadConfig(configPath)
-	if err == nil {
-		if dsn == "" {
-			var dbEnv config.Database
-			dbEnv, err = cfg.GetDatabase(envName)
-			if err == nil {
-				dsn = dbEnv.DSN
-			}
-		}
-	}
-
-	if dsn == "" {
-		return ui.WrapError(ui.ErrConfig, config.ErrMissingDSN)
-	}
-
-	client, err := db.Connect(ctx, dsn)
+	cli, err := LoadResources(ctx)
 	if err != nil {
-		return ui.WrapError(ui.ErrConnection, err)
+		return err
 	}
-	defer client.Close()
+	defer cli.DB.Close()
 
 	ui.Info("Analyzing database schema...")
-	analyzer := analyze.NewAnalyzer(client)
+	analyzer := analyze.NewAnalyzer(cli.DB)
 	suggestions, err := analyzer.Analyze(ctx)
 	if err != nil {
 		return err

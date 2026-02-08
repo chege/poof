@@ -116,16 +116,9 @@ func (e *Engine) Apply(ctx context.Context) (*MaskingReport, error) {
 
 func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p producer.Producer) ([]Diff, TableReport, error) {
 	results := TableReport{Name: tableCfg.Name}
-	columnNames := make([]string, 0, len(tableCfg.Columns))
-	generators := make(map[string]generator.Generator)
-
-	for _, col := range tableCfg.Columns {
-		columnNames = append(columnNames, col.Name)
-		gen, err := generator.NewGenerator(col.Gen)
-		if err != nil {
-			return nil, results, fmt.Errorf("failed to create generator for column %s: %w", col.Name, err)
-		}
-		generators[col.Name] = gen
+	columnNames, generators, err := e.setupGenerators(tableCfg)
+	if err != nil {
+		return nil, results, err
 	}
 
 	limit := 0
@@ -144,7 +137,6 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 	var tx db.Tx
 	var updateQuery string
 	if !e.DryRun {
-		var err error
 		tx, err = e.DB.Begin(ctx)
 		if err != nil {
 			return nil, results, fmt.Errorf("failed to start transaction: %w", err)
@@ -155,14 +147,7 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 			}
 		}()
 
-		updateQuery = fmt.Sprintf("UPDATE %s SET ", tableCfg.Name)
-		for i, col := range columnNames {
-			if i > 0 {
-				updateQuery += ", "
-			}
-			updateQuery += fmt.Sprintf("%s = $%d", col, i+2)
-		}
-		updateQuery += fmt.Sprintf(" WHERE %s = $1", tableCfg.PK)
+		updateQuery = e.buildUpdateQuery(tableCfg.Name, tableCfg.PK, columnNames)
 	}
 
 	g, gCtx := errgroup.WithContext(ctx)
@@ -173,12 +158,12 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 	g.Go(func() error {
 		defer close(inputChan)
 		for rows.Next() {
-			values, err := rows.Values()
-			if err != nil {
-				return fmt.Errorf("failed to read values: %w", err)
+			v, rowErr := rows.Values()
+			if rowErr != nil {
+				return fmt.Errorf("failed to read values: %w", rowErr)
 			}
 			select {
-			case inputChan <- rowData{pkValue: values[0], oldValues: values[1:]}:
+			case inputChan <- rowData{pkValue: v[0], oldValues: v[1:]}:
 			case <-gCtx.Done():
 				return gCtx.Err()
 			}
@@ -197,15 +182,14 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 					if !ok {
 						return nil
 					}
-					newValues := make([]any, len(columnNames))
+					row.newValues = make([]any, len(columnNames))
 					for j, colName := range columnNames {
-						val, err := generators[colName].Generate(generator.NewRowContext(tableCfg.Name, colName, e.Config.Locale, row.pkValue))
-						if err != nil {
-							return fmt.Errorf("gen error: %w", err)
+						val, genErr := generators[colName].Generate(generator.NewRowContext(tableCfg.Name, colName, e.Config.Locale, row.pkValue))
+						if genErr != nil {
+							return fmt.Errorf("gen error: %w", genErr)
 						}
-						newValues[j] = val
+						row.newValues[j] = val
 					}
-					row.newValues = newValues
 					select {
 					case outputChan <- row:
 					case <-gCtx.Done():
@@ -222,6 +206,53 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 		close(outputChan)
 	}()
 
+	diffs, err := e.writeResults(ctx, tableCfg, columnNames, generators, outputChan, tx, updateQuery, &results, p)
+	if err != nil {
+		return nil, results, err
+	}
+
+	if err := g.Wait(); err != nil {
+		return nil, results, fmt.Errorf("table %s masking failed: %w", tableCfg.Name, err)
+	}
+
+	if !e.DryRun {
+		if err := tx.Commit(ctx); err != nil {
+			return nil, results, fmt.Errorf("commit error: %w", err)
+		}
+		tx = nil
+	}
+
+	return diffs, results, nil
+}
+
+func (e *Engine) setupGenerators(tableCfg config.Table) ([]string, map[string]generator.Generator, error) {
+	columnNames := make([]string, 0, len(tableCfg.Columns))
+	generators := make(map[string]generator.Generator)
+
+	for _, col := range tableCfg.Columns {
+		columnNames = append(columnNames, col.Name)
+		gen, err := generator.NewGenerator(col.Gen)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to create generator for column %s: %w", col.Name, err)
+		}
+		generators[col.Name] = gen
+	}
+	return columnNames, generators, nil
+}
+
+func (e *Engine) buildUpdateQuery(tableName, pk string, columns []string) string {
+	query := fmt.Sprintf("UPDATE %s SET ", tableName)
+	for i, col := range columns {
+		if i > 0 {
+			query += ", "
+		}
+		query += fmt.Sprintf("%s = $%d", col, i+2)
+	}
+	query += fmt.Sprintf(" WHERE %s = $1", pk)
+	return query
+}
+
+func (e *Engine) writeResults(ctx context.Context, tableCfg config.Table, columnNames []string, generators map[string]generator.Generator, outputChan <-chan rowData, tx db.Tx, updateQuery string, results *TableReport, p producer.Producer) ([]Diff, error) {
 	var diffs []Diff
 	var bar *progressbar.ProgressBar
 	if !e.DryRun {
@@ -231,7 +262,6 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 
 	maxRetries := 10
 
-	// Writer loop
 	for row := range outputChan {
 		if e.DryRun {
 			results.Updated++
@@ -245,37 +275,8 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 				})
 			}
 		} else {
-			attempt := 0
-			for {
-				args := append([]any{row.pkValue}, row.newValues...)
-				err := tx.Exec(ctx, updateQuery, args...)
-				if err == nil {
-					results.Updated++
-					break
-				}
-
-				var pgErr *pgconn.PgError
-				if errors.As(err, &pgErr) && pgErr.Code == "23505" && attempt < maxRetries {
-					attempt++
-					results.Retried++
-					// Re-generate values for retry
-					for j, colName := range columnNames {
-						newVal, genErr := generators[colName].Generate(generator.NewRowContext(tableCfg.Name, colName, e.Config.Locale, row.pkValue))
-						if genErr != nil {
-							return nil, results, fmt.Errorf("retry gen error: %w", genErr)
-						}
-						row.newValues[j] = newVal
-					}
-					continue
-				}
-
-				results.Failed++
-				slog.Error("row masking failed",
-					"table", tableCfg.Name,
-					"pk", row.pkValue,
-					"error", err,
-				)
-				break
+			if err := e.retryUpdate(ctx, tx, updateQuery, tableCfg, columnNames, generators, &row, maxRetries, results); err != nil {
+				return nil, err
 			}
 			if bar != nil {
 				_ = bar.Add(1)
@@ -283,20 +284,45 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 		}
 	}
 
-	if err := g.Wait(); err != nil {
-		return nil, results, fmt.Errorf("table %s masking failed: %w", tableCfg.Name, err)
+	if bar != nil {
+		_ = bar.Finish()
+		fmt.Println()
 	}
 
-	if !e.DryRun {
-		if bar != nil {
-			_ = bar.Finish()
-			fmt.Println()
-		}
-		if err := tx.Commit(ctx); err != nil {
-			return nil, results, fmt.Errorf("commit error: %w", err)
-		}
-		tx = nil
-	}
+	return diffs, nil
+}
 
-	return diffs, results, nil
+func (e *Engine) retryUpdate(ctx context.Context, tx db.Tx, query string, tableCfg config.Table, columnNames []string, generators map[string]generator.Generator, row *rowData, maxRetries int, results *TableReport) error {
+	attempt := 0
+	for {
+		args := append([]any{row.pkValue}, row.newValues...)
+		err := tx.Exec(ctx, query, args...)
+		if err == nil {
+			results.Updated++
+			return nil
+		}
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" && attempt < maxRetries {
+			attempt++
+			results.Retried++
+			// Re-generate values for retry
+			for j, colName := range columnNames {
+				newVal, genErr := generators[colName].Generate(generator.NewRowContext(tableCfg.Name, colName, e.Config.Locale, row.pkValue))
+				if genErr != nil {
+					return fmt.Errorf("retry gen error: %w", genErr)
+				}
+				row.newValues[j] = newVal
+			}
+			continue
+		}
+
+		results.Failed++
+		slog.Error("row masking failed",
+			"table", tableCfg.Name,
+			"pk", row.pkValue,
+			"error", err,
+		)
+		return nil // Non-fatal
+	}
 }

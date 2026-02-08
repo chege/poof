@@ -7,9 +7,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/christopher/poof/internal/config"
-	"github.com/christopher/poof/internal/db"
-	_ "github.com/christopher/poof/internal/db/postgres" // Register Postgres backend
 	"github.com/christopher/poof/internal/engine"
 	"github.com/christopher/poof/internal/generator"
 	"github.com/christopher/poof/internal/ui"
@@ -31,47 +28,28 @@ var applyCmd = &cobra.Command{
 
 func runApply() error {
 	generator.RegisterAll()
-
-	cfg, err := config.LoadConfig(configPath)
-	if err != nil {
-		return ui.WrapError(ui.ErrConfig, err)
-	}
-
 	ctx := context.Background()
-	dsn := dbConnStr
-	if dsn == "" {
-		var dbEnv config.Database
-		dbEnv, err = cfg.GetDatabase(envName)
-		if err != nil {
-			return ui.WrapError(ui.ErrConfig, err)
-		}
-		dsn = dbEnv.DSN
-	}
 
-	if dsn == "" {
-		return ui.WrapError(ui.ErrConfig, config.ErrMissingDSN)
-	}
-
-	client, err := db.Connect(ctx, dsn)
+	cli, err := LoadResources(ctx)
 	if err != nil {
-		return ui.WrapError(ui.ErrConnection, err)
+		return err
 	}
-	defer client.Close()
+	defer cli.DB.Close()
 
-	dbName, err := client.GetDatabaseName(ctx)
+	dbName, err := cli.DB.GetDatabaseName(ctx)
 	if err != nil {
 		return ui.WrapError(ui.ErrConnection, err)
 	}
 
 	slog.Info("Starting masking process", "database", dbName, "config", configPath, "dry_run", dryRun)
 
-	if !cfg.IsAllowed(dbName) && !force {
+	if !cli.Config.IsAllowed(dbName) && !force {
 		return ui.WrapError(ui.ErrSafety, nil)
 	}
 
 	if !yes && !dryRun {
 		ui.Info("Running plan before apply...")
-		preEngine := engine.NewEngine(client, cfg, workers)
+		preEngine := engine.NewEngine(cli.DB, cli.Config, workers)
 		preEngine.DryRun = true
 		_, err = preEngine.Apply(ctx)
 		if err != nil {
@@ -86,7 +64,7 @@ func runApply() error {
 		ui.Info("Applying masking...")
 	}
 
-	eng := engine.NewEngine(client, cfg, workers)
+	eng := engine.NewEngine(cli.DB, cli.Config, workers)
 	eng.DryRun = dryRun
 	report, err := eng.Apply(ctx)
 	if err != nil {

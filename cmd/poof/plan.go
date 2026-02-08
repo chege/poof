@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/christopher/poof/internal/config"
 	"github.com/christopher/poof/internal/db"
 	_ "github.com/christopher/poof/internal/db/postgres"
 	"github.com/christopher/poof/internal/engine"
@@ -24,41 +23,23 @@ var planCmd = &cobra.Command{
 
 func runPlan() error {
 	generator.RegisterAll()
-	cfg, err := config.LoadConfig(configPath)
-	if err != nil {
-		return ui.WrapError(ui.ErrConfig, err)
-	}
-
-	dsn := dbConnStr
-	if dsn == "" {
-		var dbEnv config.Database
-		dbEnv, err = cfg.GetDatabase(envName)
-		if err != nil {
-			return ui.WrapError(ui.ErrConfig, err)
-		}
-		dsn = dbEnv.DSN
-	}
-
-	if dsn == "" {
-		return ui.WrapError(ui.ErrConfig, config.ErrMissingDSN)
-	}
-
 	ctx := context.Background()
-	client, err := db.Connect(ctx, dsn)
+
+	cli, err := LoadResources(ctx)
 	if err != nil {
-		return ui.WrapError(ui.ErrConnection, err)
+		return err
 	}
-	defer client.Close()
+	defer cli.DB.Close()
 
 	// Validate schema
-	for _, tableCfg := range cfg.Tables {
+	for _, tableCfg := range cli.Config.Tables {
 		var tableCols []db.ColumnInfo
-		tableCols, err = client.GetTableColumns(ctx, tableCfg.Name)
+		tableCols, err = cli.DB.GetTableColumns(ctx, tableCfg.Name)
 		if err != nil {
 			return ui.WrapError(ui.ErrConnection, err)
 		}
 		if len(tableCols) == 0 {
-			return ui.WrapError(ui.ErrConfig, nil) // Could use a more specific error
+			return ui.WrapError(ui.ErrConfig, nil)
 		}
 
 		colMap := make(map[string]bool)
@@ -73,7 +54,7 @@ func runPlan() error {
 		}
 	}
 
-	eng := engine.NewEngine(client, cfg, workers)
+	eng := engine.NewEngine(cli.DB, cli.Config, workers)
 	eng.DryRun = true
 
 	ui.Bold("Masking Plan:")

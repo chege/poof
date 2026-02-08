@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/christopher/poof/internal/config"
 	_ "github.com/christopher/poof/internal/db/postgres"
 	"github.com/christopher/poof/internal/engine"
 	"github.com/christopher/poof/internal/ui"
@@ -23,27 +22,13 @@ var doctorCmd = &cobra.Command{
 func runDoctor() error {
 	ctx := context.Background()
 
-	// Load config first to get DSN if not provided via flag
-	cfg, err := config.LoadConfig(configPath)
+	cli, err := LoadResources(ctx)
 	if err != nil {
-		return ui.WrapError(ui.ErrConfig, err)
+		return err
 	}
+	defer cli.DB.Close()
 
-	dsn := dbConnStr
-	if dsn == "" {
-		var dbEnv config.Database
-		dbEnv, err = cfg.GetDatabase(envName)
-		if err != nil {
-			return ui.WrapError(ui.ErrConfig, err)
-		}
-		dsn = dbEnv.DSN
-	}
-
-	if dsn == "" {
-		return ui.WrapError(ui.ErrConfig, config.ErrMissingDSN)
-	}
-
-	if !engine.CheckReadiness(ctx, configPath, dsn) {
+	if !engine.CheckReadiness(ctx, configPath, cli.DB) {
 		return ui.WrapError(ui.ErrConnection, nil)
 	}
 	ui.Success("Everything looks good! You are ready to mask.")
