@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/go-playground/validator/v10"
@@ -20,18 +21,17 @@ var (
 
 // LoadConfig reads and validates a TOML configuration file from the given path.
 func LoadConfig(path string) (*Config, error) {
-	f, err := os.Open(filepath.Clean(path))
+	content, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
-		return nil, fmt.Errorf("failed to open config: %w", err)
+		return nil, fmt.Errorf("failed to read config: %w", err)
 	}
-	defer func() {
-		_ = f.Close()
-	}()
+
+	// Expand environment variables (e.g. ${DB_PASS})
+	expandedContent := os.ExpandEnv(string(content))
 
 	var cfg Config
-	decoder := toml.NewDecoder(f)
 	// Strict validation: check for unknown keys
-	metadata, err := decoder.Decode(&cfg)
+	metadata, err := toml.NewDecoder(strings.NewReader(expandedContent)).Decode(&cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse TOML: %w", err)
 	}
@@ -41,9 +41,9 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	// Backward compatibility: If 'database' exists but 'databases' doesn't, migrate it
-	if cfg.Database.DSN != "" && len(cfg.Databases) == 0 {
+	if cfg.Database != nil && len(cfg.Databases) == 0 {
 		cfg.Databases = map[string]Database{
-			"default": cfg.Database,
+			"default": *cfg.Database,
 		}
 	}
 

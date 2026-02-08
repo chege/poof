@@ -5,9 +5,9 @@ package config
 type Config struct {
 	Databases map[string]Database `toml:"databases"`
 	Locale    string              `toml:"locale"`
-	Database  Database            `toml:"database"`
+	Database  *Database           `toml:"database"` // Deprecated: use Databases instead
 	Safety    Safety              `toml:"safety" validate:"required"`
-	Tables    []Table             `toml:"tables" validate:"required,dive,min=1"`
+	Tables    []Table             `toml:"tables" validate:"required,min=1,dive"`
 	BatchSize int                 `toml:"batch_size"`
 }
 
@@ -28,7 +28,7 @@ type Table struct {
 	Source  *Source  `toml:"source" validate:"omitempty,dive"`
 	Name    string   `toml:"name" validate:"required"`
 	PK      string   `toml:"pk" validate:"required"`
-	Columns []Column `toml:"columns" validate:"required,dive,min=1"`
+	Columns []Column `toml:"columns" validate:"required,min=1,dive"`
 }
 
 // Column defines which generator to use for a specific database column.

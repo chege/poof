@@ -17,7 +17,15 @@ type GeneratorValidator interface {
 
 // ValidateStatic performs semantic validation that does not require a database connection.
 func (c *Config) ValidateStatic(gv GeneratorValidator) error {
+	// 1. Basic database validation
+	for env, dbEnv := range c.Databases {
+		if dbEnv.DSN == "" {
+			return fmt.Errorf("environment %q: dsn is required", env)
+		}
+	}
+
 	for _, table := range c.Tables {
+
 		for _, col := range table.Columns {
 			if err := gv.ValidateGen(c.Locale, col.Gen); err != nil {
 				return fmt.Errorf("table %q, column %q: %w", table.Name, col.Name, err)
