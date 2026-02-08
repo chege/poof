@@ -149,7 +149,12 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 		limit = 5
 	}
 
-	rows, err := p.FetchRows(ctx, columnNames, limit)
+	filter := ""
+	if tableCfg.Source != nil {
+		filter = tableCfg.Source.Filter
+	}
+
+	rows, err := p.FetchRows(ctx, columnNames, filter, limit)
 	if err != nil {
 		return nil, results, fmt.Errorf("failed to fetch rows: %w", err)
 	}
@@ -207,7 +212,16 @@ func (e *Engine) maskTable(ctx context.Context, tableCfg config.Table, p produce
 					}
 					row.newValues = make([]any, len(columnNames))
 					for j, colName := range columnNames {
-						val, genErr := generators[colName].Generate(generator.NewRowContext(tableCfg.Name, colName, e.Config.Locale, row.pkValue))
+						seedBy := tableCfg.Columns[j].SeedBy
+						val, genErr := generators[colName].Generate(generator.NewRowContext(
+							tableCfg.Name,
+							colName,
+							e.Config.Locale,
+							e.Config.Safety.Salt,
+							row.pkValue,
+							row.oldValues[j],
+							seedBy,
+						))
 						if genErr != nil {
 							return fmt.Errorf("gen error: %w", genErr)
 						}
@@ -381,7 +395,16 @@ func (e *Engine) retryUpdate(ctx context.Context, tx db.Tx, query string, tableC
 			results.Retried++
 			// Re-generate values for retry
 			for j, colName := range columnNames {
-				newVal, genErr := generators[colName].Generate(generator.NewRowContext(tableCfg.Name, colName, e.Config.Locale, row.pkValue))
+				seedBy := tableCfg.Columns[j].SeedBy
+				newVal, genErr := generators[colName].Generate(generator.NewRowContext(
+					tableCfg.Name,
+					colName,
+					e.Config.Locale,
+					e.Config.Safety.Salt,
+					row.pkValue,
+					row.oldValues[j],
+					seedBy,
+				))
 				if genErr != nil {
 					return fmt.Errorf("retry gen error: %w", genErr)
 				}

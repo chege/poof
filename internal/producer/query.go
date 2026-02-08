@@ -42,7 +42,7 @@ func (p *queryProducer) EstimateCount(_ context.Context) (int64, error) {
 }
 
 // FetchRows executes the custom SQL query and returns an iterator over the result rows.
-func (p *queryProducer) FetchRows(ctx context.Context, _ []string, limit int) (db.Rows, error) {
+func (p *queryProducer) FetchRows(ctx context.Context, _ []string, _ string, limit int) (db.Rows, error) {
 	sql := p.sql
 	if limit > 0 {
 		sql = fmt.Sprintf("SELECT * FROM (%s) AS subquery LIMIT %d", p.sql, limit)

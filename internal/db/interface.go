@@ -35,7 +35,7 @@ type DB interface {
 	GetTableColumns(ctx context.Context, tableName string) ([]ColumnInfo, error)
 	GetAllTables(ctx context.Context) ([]string, error)
 	EstimateRowCount(ctx context.Context, tableName string) (int64, error)
-	FetchRows(ctx context.Context, tableName string, pkColumn string, columns []string, limit int) (Rows, error)
+	FetchRows(ctx context.Context, tableName string, pkColumn string, columns []string, filter string, limit int) (Rows, error)
 	Query(ctx context.Context, sql string, args ...any) (Rows, error)
 	Begin(ctx context.Context) (Tx, error)
 	Close()

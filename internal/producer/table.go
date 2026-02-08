@@ -22,6 +22,6 @@ func (p *tableProducer) EstimateCount(ctx context.Context) (int64, error) {
 	return p.database.EstimateRowCount(ctx, p.table)
 }
 
-func (p *tableProducer) FetchRows(ctx context.Context, columns []string, limit int) (db.Rows, error) {
-	return p.database.FetchRows(ctx, p.table, p.pk, columns, limit)
+func (p *tableProducer) FetchRows(ctx context.Context, columns []string, filter string, limit int) (db.Rows, error) {
+	return p.database.FetchRows(ctx, p.table, p.pk, columns, filter, limit)
 }

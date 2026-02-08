@@ -57,11 +57,15 @@ func (c *Client) EstimateRowCount(ctx context.Context, tableName string) (int64,
 }
 
 // FetchRows returns a cursor for iterating over rows in the given table, ordered by the primary key.
-func (c *Client) FetchRows(ctx context.Context, tableName string, pkColumn string, columns []string, limit int) (db.Rows, error) {
+func (c *Client) FetchRows(ctx context.Context, tableName string, pkColumn string, columns []string, filter string, limit int) (db.Rows, error) {
 	cols := []string{pkColumn}
 	cols = append(cols, columns...)
 
-	query := fmt.Sprintf("SELECT %s FROM %s ORDER BY %s", strings.Join(cols, ", "), tableName, pkColumn)
+	query := fmt.Sprintf("SELECT %s FROM %s", strings.Join(cols, ", "), tableName)
+	if filter != "" {
+		query += fmt.Sprintf(" WHERE %s", filter)
+	}
+	query += fmt.Sprintf(" ORDER BY %s", pkColumn)
 	if limit > 0 {
 		query += fmt.Sprintf(" LIMIT %d", limit)
 	}

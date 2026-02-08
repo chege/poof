@@ -14,14 +14,12 @@ import (
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Check if the environment is ready for masking",
-	Run: func(_ *cobra.Command, _ []string) {
-		ui.HandleExit(runDoctor())
+	Run: func(cmd *cobra.Command, _ []string) {
+		ui.HandleExit(runDoctor(cmd.Context()))
 	},
 }
 
-func runDoctor() error {
-	ctx := context.Background()
-
+func runDoctor(ctx context.Context) error {
 	cli, err := LoadResources(ctx)
 	if err != nil {
 		return err

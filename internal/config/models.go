@@ -19,6 +19,7 @@ type Database struct {
 
 // Safety defines the guardrails for irreversible masking operations.
 type Safety struct {
+	Salt           string   `toml:"salt"`
 	AllowedDBNames []string `toml:"allowed_db_names" validate:"required,min=1"`
 }
 
@@ -32,14 +33,15 @@ type Table struct {
 
 // Column defines which generator to use for a specific database column.
 type Column struct {
-	Name string `toml:"name" validate:"required"`
-	Gen  Gen    `toml:"gen" validate:"required"`
+	Name   string `toml:"name" validate:"required"`
+	SeedBy string `toml:"seed_by"` // "pk" or "value"
+	Gen    Gen    `toml:"gen" validate:"required"`
 }
 
 // Gen defines the generator type and its specific configuration parameters.
 type Gen struct {
 	Params   map[string]string `toml:"params" validate:"omitempty"`
-	Type     string            `toml:"type" validate:"required,oneof=faker template constant null"`
+	Type     string            `toml:"type" validate:"required,oneof=faker template constant null hash counter"`
 	Provider string            `toml:"provider" validate:"required_if=Type faker"`
 	Value    string            `toml:"value" validate:"required_if=Type constant"`
 	Template string            `toml:"template" validate:"required_if=Type template"`
@@ -51,6 +53,7 @@ type Source struct {
 	Type   string            `toml:"type" validate:"required,oneof=table view query"`
 	Name   string            `toml:"name" validate:"required_if=Type view"`
 	SQL    string            `toml:"sql" validate:"required_if=Type query"`
+	Filter string            `toml:"filter"` // SQL WHERE clause
 }
 
 // IsAllowed returns true if the given database name is in the list of allowed databases.

@@ -4,9 +4,11 @@ package generator
 // RowContext carries information about the current row and column being masked.
 type RowContext struct {
 	PrimaryKeyValue any
+	OriginalValue   any
 	TableName       string
 	ColumnName      string
 	Locale          string
+	Salt            string
 	Seed            [16]byte // MD5 hash used for deterministic generation
 }
 

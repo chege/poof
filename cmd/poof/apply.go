@@ -21,14 +21,13 @@ var (
 var applyCmd = &cobra.Command{
 	Use:   "apply",
 	Short: "Apply data masking rules to the database",
-	Run: func(_ *cobra.Command, _ []string) {
-		ui.HandleExit(runApply())
+	Run: func(cmd *cobra.Command, _ []string) {
+		ui.HandleExit(runApply(cmd.Context()))
 	},
 }
 
-func runApply() error {
+func runApply(ctx context.Context) error {
 	generator.RegisterAll()
-	ctx := context.Background()
 
 	cli, err := LoadResources(ctx)
 	if err != nil {

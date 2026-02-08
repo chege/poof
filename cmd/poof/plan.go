@@ -16,14 +16,13 @@ import (
 var planCmd = &cobra.Command{
 	Use:   "plan",
 	Short: "Show a summary of masking changes",
-	Run: func(_ *cobra.Command, _ []string) {
-		ui.HandleExit(runPlan())
+	Run: func(cmd *cobra.Command, _ []string) {
+		ui.HandleExit(runPlan(cmd.Context()))
 	},
 }
 
-func runPlan() error {
+func runPlan(ctx context.Context) error {
 	generator.RegisterAll()
-	ctx := context.Background()
 
 	cli, err := LoadResources(ctx)
 	if err != nil {

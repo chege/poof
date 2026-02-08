@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -11,28 +13,37 @@ import (
 	"github.com/christopher/poof/internal/ui"
 )
 
+var outputJSON bool
+
 var analyzeCmd = &cobra.Command{
 	Use:   "analyze",
 	Short: "Analyze database schema and suggest columns for masking",
-	Run: func(_ *cobra.Command, _ []string) {
-		ui.HandleExit(runAnalyze())
+	Run: func(cmd *cobra.Command, _ []string) {
+		ui.HandleExit(runAnalyze(cmd.Context()))
 	},
 }
 
-func runAnalyze() error {
-	ctx := context.Background()
-
+func runAnalyze(ctx context.Context) error {
 	cli, err := LoadResources(ctx)
 	if err != nil {
 		return err
 	}
 	defer cli.DB.Close()
 
-	ui.Info("Analyzing database schema...")
+	if !outputJSON {
+		ui.Info("Analyzing database schema...")
+	}
+
 	analyzer := analyze.NewAnalyzer(cli.DB)
 	suggestions, err := analyzer.Analyze(ctx)
 	if err != nil {
 		return err
+	}
+
+	if outputJSON {
+		encoder := json.NewEncoder(os.Stdout)
+		encoder.SetIndent("", "  ")
+		return encoder.Encode(suggestions)
 	}
 
 	if len(suggestions) == 0 {
@@ -62,4 +73,5 @@ func runAnalyze() error {
 
 func init() {
 	rootCmd.AddCommand(analyzeCmd)
+	analyzeCmd.Flags().BoolVar(&outputJSON, "json", false, "Output results in JSON format")
 }

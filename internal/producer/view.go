@@ -26,6 +26,6 @@ func (p *viewProducer) EstimateCount(ctx context.Context) (int64, error) {
 	return p.database.EstimateRowCount(ctx, p.viewName)
 }
 
-func (p *viewProducer) FetchRows(ctx context.Context, columns []string, limit int) (db.Rows, error) {
-	return p.database.FetchRows(ctx, p.viewName, p.pk, columns, limit)
+func (p *viewProducer) FetchRows(ctx context.Context, columns []string, filter string, limit int) (db.Rows, error) {
+	return p.database.FetchRows(ctx, p.viewName, p.pk, columns, filter, limit)
 }

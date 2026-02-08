@@ -11,12 +11,16 @@ batch_size = 100
 
 [safety]
 allowed_db_names = ["poof_demo"]
+salt = "demo-secret-salt"
 
 locale = "de_DE"
 
 [[tables]]
 name = "users"
 pk = "id"
+
+  [tables.source]
+  filter = "id > 0" # Example filter
 
   [[tables.columns]]
   name = "full_name"

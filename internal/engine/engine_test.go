@@ -100,7 +100,7 @@ func TestE2E(t *testing.T) {
 	assert.NoError(t, err)
 
 	// 4. Verify
-	rows, err := client.FetchRows(ctx, "users", "id", []string{"name", "email"}, 0)
+	rows, err := client.FetchRows(ctx, "users", "id", []string{"name", "email"}, "", 0)
 	assert.NoError(t, err)
 	defer func() {
 		_ = rows.Close()
@@ -172,7 +172,7 @@ func TestE2E_DryRun(t *testing.T) {
 	assert.NotEmpty(t, report.Diffs)
 
 	// Verify DB is UNCHANGED
-	rows, err := client.FetchRows(ctx, "users", "id", []string{"name"}, 0)
+	rows, err := client.FetchRows(ctx, "users", "id", []string{"name"}, "", 0)
 	assert.NoError(t, err)
 	defer func() {
 		_ = rows.Close()
@@ -242,17 +242,8 @@ func TestE2E_BatchFailureFallback(t *testing.T) {
 		}},
 	}
 
-	// We use a constant generator to FORCE a unique violation.
-	// Since we use MD5 seeding for retries, the retry will ALSO be a constant in this test
-	// unless we specifically use a generator that changes on retry.
-	// BUT, our current engine.retryUpdate RE-GENERATES using the same generator.
-	// For a 'constant' generator, it will always collide.
-	// This is perfect for testing the 'Failed' count and fallback.
-
 	engine := NewEngine(client, cfg, 1)
 	report, err := engine.Apply(ctx)
-	// Apply might return an error because the COMMIT might fail if we don't handle partial failures at the table level transaction.
-	// But for this test, we just want to see the stats in the report if it exists.
 	if err != nil {
 		assert.Contains(t, err.Error(), "commit error")
 	}
@@ -260,6 +251,115 @@ func TestE2E_BatchFailureFallback(t *testing.T) {
 	if report != nil && len(report.Tables) > 0 {
 		assert.Equal(t, int64(1), report.Tables[0].Failed, "Should have 1 failed row due to persistent collision")
 	}
+}
+
+func TestE2E_SeedByValue(t *testing.T) {
+	ctx := context.Background()
+
+	pgContainer, err := postgres.Run(ctx, "postgres:16-alpine",
+		postgres.WithDatabase("testdb"),
+		postgres.WithUsername("user"),
+		postgres.WithPassword("pass"),
+		testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2)),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		_ = pgContainer.Terminate(ctx)
+	}()
+	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	client, err := db.Connect(ctx, connStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+
+	tx, err := client.Begin(ctx)
+	assert.NoError(t, err)
+	err = tx.Exec(ctx, "CREATE TABLE users (id INT PRIMARY KEY, email TEXT)")
+	assert.NoError(t, err)
+	err = tx.Exec(ctx, "CREATE TABLE orders (id INT PRIMARY KEY, customer_email TEXT)")
+	assert.NoError(t, err)
+	err = tx.Exec(ctx, "INSERT INTO users (id, email) VALUES (1, 'bob@example.com'), (2, 'alice@example.com')")
+	assert.NoError(t, err)
+	err = tx.Exec(ctx, "INSERT INTO orders (id, customer_email) VALUES (101, 'bob@example.com'), (102, 'alice@example.com')")
+	assert.NoError(t, err)
+	err = tx.Commit(ctx)
+	assert.NoError(t, err)
+
+	generator.RegisterAll()
+	cfg := &config.Config{
+		Databases: map[string]config.Database{"default": {DSN: connStr}},
+		Safety:    config.Safety{AllowedDBNames: []string{"testdb"}},
+		Tables: []config.Table{
+			{
+				Name: "users", PK: "id",
+				Columns: []config.Column{{Name: "email", SeedBy: "value", Gen: config.Gen{Type: "faker", Provider: "email"}}},
+			},
+			{
+				Name: "orders", PK: "id",
+				Columns: []config.Column{{Name: "customer_email", SeedBy: "value", Gen: config.Gen{Type: "faker", Provider: "email"}}},
+			},
+		},
+	}
+
+	engine := NewEngine(client, cfg, 1)
+	_, err = engine.Apply(ctx)
+	assert.NoError(t, err)
+
+	// Verify Bob's email is the same in both tables
+	var emailU, emailO string
+	rowsU, err := client.Query(ctx, "SELECT email FROM users WHERE id = 1")
+	assert.NoError(t, err)
+	assert.True(t, rowsU.Next())
+	err = rowsU.Scan(&emailU)
+	assert.NoError(t, err)
+	_ = rowsU.Close()
+
+	rowsO, err := client.Query(ctx, "SELECT customer_email FROM orders WHERE id = 101")
+	assert.NoError(t, err)
+	assert.True(t, rowsO.Next())
+	err = rowsO.Scan(&emailO)
+	assert.NoError(t, err)
+	_ = rowsO.Close()
+	assert.Equal(t, emailU, emailO, "Bob's email should be consistently masked")
+
+	// Verify Alice's email is the same in both tables
+	rowsU, err = client.Query(ctx, "SELECT email FROM users WHERE id = 2")
+	assert.NoError(t, err)
+	assert.True(t, rowsU.Next())
+	err = rowsU.Scan(&emailU)
+	assert.NoError(t, err)
+	_ = rowsU.Close()
+
+	rowsO, err = client.Query(ctx, "SELECT customer_email FROM orders WHERE id = 102")
+	assert.NoError(t, err)
+	assert.True(t, rowsO.Next())
+	err = rowsO.Scan(&emailO)
+	assert.NoError(t, err)
+	_ = rowsO.Close()
+	assert.Equal(t, emailU, emailO, "Alice's email should be consistently masked")
+
+	// Verify Bob and Alice are different
+	var emailBob, emailAlice string
+	rowsU, err = client.Query(ctx, "SELECT email FROM users WHERE id = 1")
+	assert.NoError(t, err)
+	assert.True(t, rowsU.Next())
+	err = rowsU.Scan(&emailBob)
+	assert.NoError(t, err)
+	_ = rowsU.Close()
+
+	rowsU, err = client.Query(ctx, "SELECT email FROM users WHERE id = 2")
+	assert.NoError(t, err)
+	assert.True(t, rowsU.Next())
+	err = rowsU.Scan(&emailAlice)
+	assert.NoError(t, err)
+	_ = rowsU.Close()
+	assert.NotEqual(t, emailBob, emailAlice)
 }
 
 func TestDeterminism(t *testing.T) {
@@ -310,7 +410,7 @@ func TestDeterminism(t *testing.T) {
 	engine1 := NewEngine(client, cfg, 1)
 	_, err = engine1.Apply(ctx)
 	assert.NoError(t, err)
-	rows1, err := client.FetchRows(ctx, "users", "id", []string{"name"}, 0)
+	rows1, err := client.FetchRows(ctx, "users", "id", []string{"name"}, "", 0)
 	assert.NoError(t, err)
 	results1 := make(map[int]string)
 	for rows1.Next() {
@@ -335,7 +435,7 @@ func TestDeterminism(t *testing.T) {
 	engine4 := NewEngine(client, cfg, 4)
 	_, err = engine4.Apply(ctx)
 	assert.NoError(t, err)
-	rows4, err := client.FetchRows(ctx, "users", "id", []string{"name"}, 0)
+	rows4, err := client.FetchRows(ctx, "users", "id", []string{"name"}, "", 0)
 	assert.NoError(t, err)
 	for rows4.Next() {
 		var id int
