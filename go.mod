@@ -1,4 +1,4 @@
-module github.com/christopher/poof
+module github.com/chege/poof
 
 go 1.25.7
 
