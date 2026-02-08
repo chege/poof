@@ -27,15 +27,16 @@ type Safety struct {
 type Table struct {
 	Source  *Source  `toml:"source" validate:"omitempty,dive"`
 	Name    string   `toml:"name" validate:"required"`
-	PK      string   `toml:"pk" validate:"required"`
+	PK      string   `toml:"pk"` // Defaults to "id" if empty
 	Columns []Column `toml:"columns" validate:"required,min=1,dive"`
 }
 
 // Column defines which generator to use for a specific database column.
 type Column struct {
-	Name   string `toml:"name" validate:"required"`
-	SeedBy string `toml:"seed_by"` // "pk" or "value"
-	Gen    Gen    `toml:"gen" validate:"required"`
+	Name      string `toml:"name" validate:"required"`
+	SeedBy    string `toml:"seed_by"` // "pk" or "value"
+	Generator string `toml:"generator"`
+	Gen       Gen    `toml:"gen"`
 }
 
 // Gen defines the generator type and its specific configuration parameters.

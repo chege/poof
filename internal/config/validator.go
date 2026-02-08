@@ -27,11 +27,25 @@ func (c *Config) ValidateStatic(gv GeneratorValidator) error {
 	for _, table := range c.Tables {
 
 		for _, col := range table.Columns {
-			if err := gv.ValidateGen(c.Locale, col.Gen); err != nil {
-				return fmt.Errorf("table %q, column %q: %w", table.Name, col.Name, err)
+
+			gen := col.Gen
+
+			if col.Generator != "" && gen.Type == "" {
+
+				gen = Gen{Type: "faker", Provider: col.Generator}
+
 			}
+
+			if err := gv.ValidateGen(c.Locale, gen); err != nil {
+
+				return fmt.Errorf("table %q, column %q: %w", table.Name, col.Name, err)
+
+			}
+
 		}
+
 	}
+
 	return nil
 }
 

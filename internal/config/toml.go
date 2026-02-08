@@ -60,6 +60,46 @@ func LoadConfig(path string) (*Config, error) {
 		cfg.BatchSize = 500
 	}
 
+	// Apply Sane Defaults
+	for i := range cfg.Tables {
+		if cfg.Tables[i].PK == "" {
+			cfg.Tables[i].PK = "id"
+		}
+		for j := range cfg.Tables[i].Columns {
+			col := &cfg.Tables[i].Columns[j]
+			// If shorthand 'generator' is used, populate the 'Gen' struct
+			if col.Generator != "" && col.Gen.Type == "" {
+				col.Gen = Gen{
+					Type:     "faker",
+					Provider: col.Generator,
+				}
+			}
+		}
+	}
+
+	for env, dbEnv := range cfg.Databases {
+		if dbEnv.DSN == "" {
+			// Try to build DSN from standard PG env vars
+			host := os.Getenv("PGHOST")
+			if host == "" {
+				host = "localhost"
+			}
+			user := os.Getenv("PGUSER")
+			pass := os.Getenv("PGPASSWORD")
+			dbname := os.Getenv("PGDATABASE")
+			port := os.Getenv("PGPORT")
+			if port == "" {
+				port = "5432"
+			}
+
+			if user != "" && dbname != "" {
+				dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", user, pass, host, port, dbname)
+				dbEnv.DSN = dsn
+				cfg.Databases[env] = dbEnv
+			}
+		}
+	}
+
 	return &cfg, nil
 }
 

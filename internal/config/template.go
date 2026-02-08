@@ -29,24 +29,18 @@ locale = "en_US"
 # [[tables]] section: Define rules for a table (can be multiple).
 [[tables]]
 name = "users"
-# pk: The primary key column name. REQUIRED for deterministic masking.
+# pk: The primary key column name. Defaults to "id".
 pk = "id"
 
   # [[tables.columns]] section: Defines how to mask a specific column.
   [[tables.columns]]
   name = "full_name"
-  # [tables.columns.gen] section: Generator configuration.
-  [tables.columns.gen]
-  # type: Generator type (faker, template, constant, null, hash, counter).
-  type = "faker"
-  # provider: Specific data type for faker.
-  provider = "full_name"
+  # generator: Shorthand for faker providers.
+  generator = "full_name"
 
   [[tables.columns]]
   name = "email"
-  [tables.columns.gen]
-  type = "faker"
-  provider = "email"
+  generator = "email"
 `
 	}
 
@@ -60,18 +54,13 @@ salt = "secret-salt-change-me"
 
 [[tables]]
 name = "users"
-pk = "id"
 
   [[tables.columns]]
   name = "full_name"
-  [tables.columns.gen]
-  type = "faker"
-  provider = "full_name"
+  generator = "full_name"
 
   [[tables.columns]]
   name = "email"
-  [tables.columns.gen]
-  type = "faker"
-  provider = "email"
+  generator = "email"
 `
 }
