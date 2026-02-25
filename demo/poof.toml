@@ -24,36 +24,42 @@ pk = "id"
 
   [[tables.columns]]
   name = "full_name"
-  [tables.columns.gen]
-  type = "faker"
-  provider = "full_name"
+
+    [tables.columns.gen]
+    type = "faker"
+    provider = "full_name"
 
   [[tables.columns]]
   name = "username"
-  [tables.columns.gen]
-  type = "template"
-  template = "USER-{{ counter }}-{{ faker \"first_name\" }}"
+
+    [tables.columns.gen]
+    type = "template"
+    template = "USER-{{ counter }}-{{ faker \"first_name\" }}"
 
   [[tables.columns]]
   name = "email"
-  [tables.columns.gen]
-  type = "faker"
-  provider = "email"
+
+    [tables.columns.gen]
+    type = "faker"
+    provider = "email"
 
   [[tables.columns]]
   name = "company"
-  [tables.columns.gen]
-  type = "faker"
-  provider = "company_name"
+
+    [tables.columns.gen]
+    type = "faker"
+    provider = "company_name"
 
   [[tables.columns]]
   name = "phone"
-  [tables.columns.gen]
-  type = "faker"
-  provider = "phone_number"
+
+    [tables.columns.gen]
+    type = "faker"
+    provider = "phone_number"
 
   [[tables.columns]]
   name = "bio"
-  [tables.columns.gen]
-  type = "faker"
-  provider = "short_text"
+
+    [tables.columns.gen]
+    type = "faker"
+    provider = "short_text"

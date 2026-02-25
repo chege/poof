@@ -12,7 +12,7 @@ This phase introduces a pluggable `Producer` architecture to decouple row select
 **Language/Version**: Go 1.25.x
 **Primary Dependencies**: 
 - `github.com/jackc/pgx/v5`
-- `github.com/hashicorp/hcl/v2`
+- `github.com/BurntSushi/toml`
 **Architecture**: Interface-driven row selection.
 **Constraints**: Compile-time registration; No external data sources; Absolute determinism.
 

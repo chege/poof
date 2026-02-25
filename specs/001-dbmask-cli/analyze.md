@@ -7,9 +7,9 @@
    - Each generator `Generate` call will be passed this `RowContext`.
    - For `faker`, we will use a local random source seeded with the calculated seed for *every* row, rather than a shared global source. This prevents race conditions and ensures output is independent of worker count or execution order.
 
-2. **HCL Validation**:
-   - We will use `hcl.Diagnostics` to report all errors.
-   - "Fail hard" on unknown fields will be enforced using `hcl.Body.Content` and checking for unhandled attributes.
+2. **TOML Validation**:
+   - We will use `toml.NewDecoder(r).DisallowUnknownFields()` to report all errors.
+   - "Fail hard" on unknown fields will be enforced by the parser.
 
 3. **Database Efficiency**:
    - While using one transaction per table, we will use a `PREPARE` statement for the update query and execute it in a loop (or batch) for all rows.

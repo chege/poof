@@ -16,7 +16,7 @@ We use [Task](https://taskfile.dev/) to manage our development workflow.
 2. **Install dependencies**: `go mod download`
 3. **Run tests**: `go test ./...`
 4. **Make changes**: Hack away!
-5. **Verify changes**: `gofmt -w .` and `go test ./...`
+5. **Verify changes**: `task ready` (runs fmt, lint, and tests).
 6. **Submit a PR**: Open a pull request against the `main` branch.
 
 ## Standards

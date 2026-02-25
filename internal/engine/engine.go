@@ -13,10 +13,10 @@ import (
 	"github.com/schollz/progressbar/v3"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/christopher/poof/internal/config"
-	"github.com/christopher/poof/internal/db"
-	"github.com/christopher/poof/internal/generator"
-	"github.com/christopher/poof/internal/producer"
+	"github.com/chege/poof/internal/config"
+	"github.com/chege/poof/internal/db"
+	"github.com/chege/poof/internal/generator"
+	"github.com/chege/poof/internal/producer"
 )
 
 const maxRetries = 10

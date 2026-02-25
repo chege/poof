@@ -2,11 +2,10 @@
 
 ## Architectural Refinements
 
-1. **Strict HCL Validation**:
-   - `hclsimple.DecodeFile` is convenient but doesn't easily allow for "fail hard on unknown fields" without additional logic.
-   - I will transition to using the lower-level `hcl` package. I'll parse the file into an `hcl.File`, then use `hcl.Body.Content` with a defined schema. Any remaining attributes or blocks in the body will trigger a diagnostic error.
-
-2. **Deterministic Provider Implementations**:
+1. **Strict TOML Validation**:
+   - Standard TOML decoding is convenient but doesn't easily allow for "fail hard on unknown fields" without additional logic.
+   - I will use `DisallowUnknownFields()` from `github.com/BurntSushi/toml` to ensure the tool fails hard on any unrecognized configuration keys.
+   2. **Deterministic Provider Implementations**:
    - `ipv4_address`: Use the row-seeded `rand.Rand` to generate 4 bytes.
    - `short_text`: Generate a fixed-length string of random characters from a restricted set (a-z, A-Z, 0-9) using the row-seeded `rand.Rand`.
    - `username`: Combine fake first and last names or use a set of deterministic patterns.
@@ -18,7 +17,8 @@
    - `init`, `plan`, `apply` will map to `./poof` commands with standard flags to ensure consistency.
 
 4. **Error Hardening**:
-   - Wrap all `pgx` and `hcl` errors with context-specific messages (e.g., `"failed to update column %s in table %s: %w"`).
+       - Wrap all `pgx` and `toml` errors with context-specific messages (e.g., `"failed to update column %s in table %s: %w"`).
+   
    - Ensure the tool provides a non-zero exit code on *any* diagnostic failure or runtime error.
 
 ## Applied Suggestions (Automatic)

@@ -18,7 +18,7 @@
 - [x] T005 Implement `poof doctor` command in `cmd/poof/doctor.go`
 
 ### User Story 2 - poof init (P2)
-- [x] T006 Create annotated HCL template in `internal/config/template.go`
+- [x] T006 Create annotated TOML template in `internal/config/template.go`
 - [x] T007 Implement `poof init` command with `--explain` in `cmd/poof/init.go`
 
 ### User Story 3 - poof validate & plan (P3)

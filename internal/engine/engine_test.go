@@ -11,10 +11,10 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/christopher/poof/internal/config"
-	"github.com/christopher/poof/internal/db"
-	_ "github.com/christopher/poof/internal/db/postgres"
-	"github.com/christopher/poof/internal/generator"
+	"github.com/chege/poof/internal/config"
+	"github.com/chege/poof/internal/db"
+	_ "github.com/chege/poof/internal/db/postgres"
+	"github.com/chege/poof/internal/generator"
 )
 
 func TestE2E(t *testing.T) {

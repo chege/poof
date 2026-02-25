@@ -28,7 +28,7 @@ As a user, I want to have a broader set of deterministic faker providers (userna
 
 **Why this priority**: Enhances the utility of the tool by supporting more common database fields while maintaining the core principle of determinism.
 
-**Independent Test**: Can be tested by configuring a table with the new providers in `poof.hcl` and verifying that the database contains realistic but fake data that remains identical across multiple runs.
+**Independent Test**: Can be tested by configuring a table with the new providers in `poof.toml` and verifying that the database contains realistic but fake data that remains identical across multiple runs.
 
 **Acceptance Scenarios**:
 
@@ -43,11 +43,11 @@ As a system, I want to have explicit error handling, strict validation of config
 
 **Why this priority**: Improves the "hardened" aspect of the tool, reducing the risk of silent failures or misconfiguration.
 
-**Independent Test**: Can be tested by providing an HCL configuration with unknown fields or blocks and verifying that the tool fails hard with an explicit error message.
+**Independent Test**: Can be tested by providing an TOML configuration with unknown fields or blocks and verifying that the tool fails hard with an explicit error message.
 
 **Acceptance Scenarios**:
 
-1. **Given** an HCL config with an unknown attribute, **When** the tool loads it, **Then** it fails immediately with a descriptive error.
+1. **Given** an TOML config with an unknown attribute, **When** the tool loads it, **Then** it fails immediately with a descriptive error.
 2. **Given** a table without a primary key, **When** masking is attempted, **Then** the tool provides a clear error explaining the PK requirement.
 
 ---
@@ -55,7 +55,7 @@ As a system, I want to have explicit error handling, strict validation of config
 ### Edge Cases
 
 - **Taskfile missing**: The system should rely on `task` being available as a prerequisite.
-- **Malformed HCL**: System must handle HCL syntax errors gracefully but firmly (fail hard).
+- **Malformed TOML**: System must handle TOML syntax errors gracefully but firmly (fail hard).
 - **Parallelism with new providers**: Ensure `ipv4_address` and `short_text` are correctly seeded and thread-safe.
 
 ## Requirements *(mandatory)*
@@ -82,5 +82,5 @@ As a system, I want to have explicit error handling, strict validation of config
 - **SC-001**: All tasks in `Taskfile.yml` execute successfully in the target environment.
 - **SC-002**: 100% of new faker providers are verified to be deterministic across parallel workers.
 - **SC-003**: E2E tests pass for the full masking flow using `testcontainers-go`, including verification of new providers.
-- **SC-004**: Tool fails with a non-zero exit code and clear message when encountering unknown HCL configuration.
+- **SC-004**: Tool fails with a non-zero exit code and clear message when encountering unknown TOML configuration.
 - **SC-005**: Codebase is free of `init()` side effects beyond explicit registration, as per core principles.

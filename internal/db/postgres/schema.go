@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/christopher/poof/internal/db"
+	"github.com/chege/poof/internal/db"
 )
 
 // GetTableColumns returns metadata for all columns in a given table.

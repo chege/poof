@@ -12,7 +12,7 @@ This phase focuses on introducing `Taskfile.yml` for standardized orchestration,
 **Language/Version**: Go 1.25.x
 **Primary Dependencies**: 
 - `github.com/spf13/cobra`
-- `github.com/hashicorp/hcl/v2`
+- `github.com/BurntSushi/toml`
 - `github.com/go-faker/faker/v4`
 - `github.com/testcontainers/testcontainers-go`
 **New Tooling**: Taskfile.dev
@@ -24,7 +24,7 @@ This phase focuses on introducing `Taskfile.yml` for standardized orchestration,
 *Passes Core Principles:*
 - Tooling-First: Tasks will guide all autonomous work.
 - Determinism: New providers must be seeded per row.
-- Hardened: Explicit validation for HCL unknown fields.
+- Hardened: Explicit validation for TOML unknown fields.
 
 ## Project Structure
 
@@ -43,7 +43,7 @@ specs/002-hardening-tooling/
 ```text
 Taskfile.yml             # New: Taskfile.dev orchestration
 internal/config/
-  hcl.go                 # Update: Add strict validation for unknown fields
+  toml.go                # Update: Add strict validation for unknown fields
 internal/generator/
   all.go                 # Update: Register new faker providers
   faker.go               # Update: Implement new providers

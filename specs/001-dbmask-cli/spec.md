@@ -3,7 +3,7 @@
 **Feature Branch**: `001-poof-cli`  
 **Created**: 2026-02-07  
 **Status**: Draft  
-**Input**: User description: "SRS: poof — PostgreSQL Data Masking CLI (Go, HCL, Cobra) VERSION: 1.2"
+**Input**: User description: "SRS: poof — PostgreSQL Data Masking CLI (Go, TOML, Cobra) VERSION: 1.2"
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -13,11 +13,11 @@ As a Database Administrator, I want to mask sensitive production data (like PII)
 
 **Why this priority**: This is the core purpose of the tool. Providing a safe way to mask data is the primary value proposition.
 
-**Independent Test**: Can be fully tested by providing an HCL configuration and a target database with sensitive data, then verifying the data is replaced with masked values that are realistic but fake.
+**Independent Test**: Can be fully tested by providing an TOML configuration and a target database with sensitive data, then verifying the data is replaced with masked values that are realistic but fake.
 
 **Acceptance Scenarios**:
 
-1. **Given** a PostgreSQL database with a table `users` containing `email` and `full_name`, **When** I run `poof apply --config config.hcl`, **Then** the `email` and `full_name` columns are updated with fake data.
+1. **Given** a PostgreSQL database with a table `users` containing `email` and `full_name`, **When** I run `poof apply --config config.toml`, **Then** the `email` and `full_name` columns are updated with fake data.
 2. **Given** a valid configuration, **When** I run `poof apply` without `--force` on a database not in the allowlist, **Then** the tool refuses to run for safety.
 
 ---
@@ -54,15 +54,15 @@ As a QA Engineer, I want to use special "test fakers" that return predictable va
 ### Edge Cases
 
 - **Missing Primary Key**: The tool must fail if a table being masked does not have a primary key, as it's required for deterministic seeding.
-- **Unknown HCL Blocks**: The tool must fail hard if the configuration file contains unknown blocks or fields to prevent accidental misconfiguration.
+- **Unknown TOML Blocks**: The tool must fail hard if the configuration file contains unknown blocks or fields to prevent accidental misconfiguration.
 - **Database Connection Failure**: Graceful exit with a clear error message if the PostgreSQL database is unreachable.
-- **Unused Configuration**: If a table or column is defined in HCL but doesn't exist in the database, the tool should fail (or at least warn/fail based on "fail hard" rule).
+- **Unused Configuration**: If a table or column is defined in TOML but doesn't exist in the database, the tool should fail (or at least warn/fail based on "fail hard" rule).
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: System MUST parse declarative HCL configuration files for masking rules.
+- **FR-001**: System MUST parse declarative TOML configuration files for masking rules.
 - **FR-002**: System MUST support `faker`, `template`, `constant`, and `null` generator types.
 - **FR-003**: System MUST provide a compile-time plugin-style registry for generators and faker providers.
 - **FR-004**: System MUST ensure deterministic output by seeding generators with `MD5(table_name + ":" + pk_value)`.
@@ -75,7 +75,7 @@ As a QA Engineer, I want to use special "test fakers" that return predictable va
 
 ### Key Entities
 
-- **Configuration**: The HCL file defining which tables and columns to mask and with which generators.
+- **Configuration**: The TOML file defining which tables and columns to mask and with which generators.
 - **Generator**: An implementation of the `Generate(ctx RowContext)` interface that produces masked data.
 - **Faker Provider**: A specific category of fake data (e.g., name, email) within the faker generator.
 - **Registry**: The central, explicit registration point for all available generators and providers.

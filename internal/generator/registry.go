@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/christopher/poof/internal/config"
+	"github.com/chege/poof/internal/config"
 )
 
 // Factory is a function that creates a new Generator based on its configuration.

@@ -12,7 +12,7 @@ This phase hardens the `poof` tool by abstracting the database layer behind an i
 **Language/Version**: Go 1.25.x
 **Primary Dependencies**: 
 - `github.com/jackc/pgx/v5`
-- `github.com/hashicorp/hcl/v2`
+- `github.com/BurntSushi/toml`
 **Storage**: PostgreSQL (Target)
 **Testing**: `task ready` (includes E2E with Testcontainers)
 **Constraints**: No ORMs; Minimal interfaces; Implicit backend selection via DSN.

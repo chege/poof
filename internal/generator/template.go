@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"text/template"
 
-	"github.com/christopher/poof/internal/config"
+	"github.com/chege/poof/internal/config"
 )
 
 // ValidateTemplate checks if a template string is syntactically correct.

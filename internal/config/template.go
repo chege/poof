@@ -4,7 +4,7 @@ package config
 func DefaultTemplate(explain bool) string {
 	if explain {
 		return `# poof configuration file (TOML)
-# For more info see: https://github.com/christopher/poof
+# For more info see: https://github.com/chege/poof
 
 # [databases] section: Connection details for multiple environments.
 [databases.local]

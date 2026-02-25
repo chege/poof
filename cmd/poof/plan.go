@@ -6,11 +6,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/christopher/poof/internal/db"
-	_ "github.com/christopher/poof/internal/db/postgres"
-	"github.com/christopher/poof/internal/engine"
-	"github.com/christopher/poof/internal/generator"
-	"github.com/christopher/poof/internal/ui"
+	"github.com/chege/poof/internal/db"
+	_ "github.com/chege/poof/internal/db/postgres"
+	"github.com/chege/poof/internal/engine"
+	"github.com/chege/poof/internal/generator"
+	"github.com/chege/poof/internal/ui"
 )
 
 var planCmd = &cobra.Command{

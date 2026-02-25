@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/christopher/poof/internal/analyze"
-	_ "github.com/christopher/poof/internal/db/postgres"
-	"github.com/christopher/poof/internal/ui"
+	"github.com/chege/poof/internal/analyze"
+	_ "github.com/chege/poof/internal/db/postgres"
+	"github.com/chege/poof/internal/ui"
 )
 
 var outputJSON bool

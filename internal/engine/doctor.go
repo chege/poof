@@ -4,11 +4,11 @@ package engine
 import (
 	"context"
 
-	"github.com/christopher/poof/internal/config"
-	"github.com/christopher/poof/internal/db"
-	_ "github.com/christopher/poof/internal/db/postgres" // Registered for side-effect database discovery.
-	"github.com/christopher/poof/internal/generator"
-	"github.com/christopher/poof/internal/ui"
+	"github.com/chege/poof/internal/config"
+	"github.com/chege/poof/internal/db"
+	_ "github.com/chege/poof/internal/db/postgres" // Registered for side-effect database discovery.
+	"github.com/chege/poof/internal/generator"
+	"github.com/chege/poof/internal/ui"
 )
 
 // CheckReadiness performs a series of environment and configuration checks.

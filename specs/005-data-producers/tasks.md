@@ -7,8 +7,8 @@
 
 - [x] T001 Define `Producer` interface in `internal/producer/interface.go`
 - [x] T002 Implement Producer Registry in `internal/producer/registry.go`
-- [x] T003 Update `internal/config/models.go` to support `source` blocks in HCL
-- [x] T004 Add `source` block to `internal/config/hcl.go` validation logic
+- [x] T003 Update `internal/config/models.go` to support `source` blocks in TOML
+- [x] T004 Add `source` block to `internal/config/toml.go` validation logic
 
 ---
 

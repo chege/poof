@@ -63,7 +63,7 @@ As an advanced user, I want to provide a custom SQL query to select exactly whic
 
 - **FR-001**: Introduce a `Producer` interface that abstracts row selection.
 - **FR-002**: Support `table` (default), `view`, and `query` producer types.
-- **FR-003**: The `table` block in HCL MUST support an optional `source` block.
+- **FR-003**: The `table` block in TOML MUST support an optional `source` block.
 - **FR-004**: Producers MUST yield row identifiers (PKs) in a deterministic order.
 - **FR-005**: The `view` producer MUST map rows to a base table for updates.
 - **FR-006**: The `query` producer MUST be a `SELECT` statement returning the PK and MUST include `ORDER BY pk`.
@@ -74,7 +74,7 @@ As an advanced user, I want to provide a custom SQL query to select exactly whic
 ### Key Entities
 
 - **Producer**: The component responsible for identifying rows to be masked.
-- **Source Configuration**: The HCL block defining the producer type and its parameters.
+- **Source Configuration**: The TOML block defining the producer type and its parameters.
 - **Engine**: The core logic that consumes rows from a producer and applies generators.
 
 ## Success Criteria *(mandatory)*

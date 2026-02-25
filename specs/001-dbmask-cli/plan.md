@@ -5,14 +5,14 @@
 
 ## Summary
 
-Build a Go-based CLI tool `poof` that performs deterministic, declarative data masking for PostgreSQL. The tool will use HCL for configuration, `pgx` for database interaction, and a compile-time registry for extensible generators.
+Build a Go-based CLI tool `poof` that performs deterministic, declarative data masking for PostgreSQL. The tool will use TOML for configuration, `pgx` for database interaction, and a compile-time registry for extensible generators.
 
 ## Technical Context
 
 **Language/Version**: Go 1.25.x
 **Primary Dependencies**: 
 - `github.com/spf13/cobra` (CLI)
-- `github.com/hashicorp/hcl/v2` (Config)
+- `github.com/BurntSushi/toml` (Config)
 - `github.com/jackc/pgx/v5` (PostgreSQL)
 - `github.com/go-faker/faker/v4` (Data Generation)
 - `github.com/testcontainers/testcontainers-go` (Testing)
@@ -53,7 +53,7 @@ cmd/
     apply.go             # Apply command implementation
 internal/
   config/
-    hcl.go               # HCL parsing logic
+    toml.go              # TOML parsing logic
     models.go            # Configuration structs
   generator/
     registry.go          # Generator registration system

@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/christopher/poof/internal/config"
-	"github.com/christopher/poof/internal/db"
+	"github.com/chege/poof/internal/config"
+	"github.com/chege/poof/internal/db"
 )
 
 // Factory is a function that creates a new Producer based on configuration.

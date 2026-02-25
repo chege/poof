@@ -51,7 +51,7 @@ internal/
   ui/
     output.go            # New: Symbols, colors, and TTY logic
   config/
-    template.go          # New: HCL template content
+    template.go          # New: TOML template content
   poof/
     engine.go            # Update: Add DryRun mode for plan
 ```

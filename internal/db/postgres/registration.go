@@ -4,7 +4,7 @@ package postgres
 import (
 	"context"
 
-	"github.com/christopher/poof/internal/db"
+	"github.com/chege/poof/internal/db"
 )
 
 // init registers the PostgreSQL backend with the database registry.

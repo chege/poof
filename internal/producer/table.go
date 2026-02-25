@@ -3,8 +3,8 @@ package producer
 import (
 	"context"
 
-	"github.com/christopher/poof/internal/config"
-	"github.com/christopher/poof/internal/db"
+	"github.com/chege/poof/internal/config"
+	"github.com/chege/poof/internal/db"
 )
 
 type tableProducer struct {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/christopher/poof/internal/db"
-	"github.com/christopher/poof/internal/ui"
+	"github.com/chege/poof/internal/db"
+	"github.com/chege/poof/internal/ui"
 )
 
 // GeneratorValidator defines the interface for validating generator parameters.
